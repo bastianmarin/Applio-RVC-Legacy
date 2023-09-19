@@ -490,8 +490,12 @@ class GUI:
                             ),
                         ],
                         [
-                            sg.Checkbox(i18n("Input noise reduction"), key="I_noise_reduce"),
-                            sg.Checkbox(i18n("Output noise reduction"), key="O_noise_reduce"),
+                            sg.Checkbox(
+                                i18n("Input noise reduction"), key="I_noise_reduce"
+                            ),
+                            sg.Checkbox(
+                                i18n("Output noise reduction"), key="O_noise_reduce"
+                            ),
                         ],
                     ],
                     title=i18n("Performance settings"),

@@ -10,8 +10,7 @@ import sys
 import time
 
 
-def simple_repr(obj, attrs: tp.Optional[tp.Sequence[str]] = None,
-                overrides: dict = {}):
+def simple_repr(obj, attrs: tp.Optional[tp.Sequence[str]] = None, overrides: dict = {}):
     """
     Return a simple representation string for `obj`.
     If `attrs` is not None, it should be a list of attributes to include.
@@ -55,6 +54,7 @@ class MarkdownTable:
     |     Honey |     5 |
     |       Car | 5,000 |
     """
+
     def __init__(self, columns, file=sys.stdout):
         self.columns = columns
         self.file = file
@@ -69,7 +69,7 @@ class MarkdownTable:
     def line(self, line):
         out = []
         for val, col in zip(line, self.columns):
-            val = format(val, '>' + str(len(col)))
+            val = format(val, ">" + str(len(col)))
             out.append(" " + val + " ")
         self._writeln(out)
 
@@ -87,6 +87,7 @@ class Chrono:
     >>> print(chrono.duration < 10)  # Should be true unless on a really slow computer.
     True
     """
+
     def __init__(self):
         self.duration = None
 
@@ -96,6 +97,7 @@ class Chrono:
 
     def __exit__(self, exc_type, exc_value, exc_tracebck):
         import torch
+
         if torch.cuda.is_available():
             torch.cuda.synchronize()
         self.duration = time.time() - self._begin

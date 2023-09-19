@@ -80,15 +80,27 @@ class PreProcess:
         )
 
     def pipeline(self, path, idx0):
-        
-        file_extension = path.split('.')[-1]
-        supported_file_extensions = {'wav', 'mp3', 'flac', 'ogg', 'opus',
-                                    'm4a', 'mp4', 'aac', 'alac', 'wma',
-                                    'aiff', 'webm', 'ac3'}
-        
+        file_extension = path.split(".")[-1]
+        supported_file_extensions = {
+            "wav",
+            "mp3",
+            "flac",
+            "ogg",
+            "opus",
+            "m4a",
+            "mp4",
+            "aac",
+            "alac",
+            "wma",
+            "aiff",
+            "webm",
+            "ac3",
+        }
+
         try:
             if file_extension in supported_file_extensions:
-                if not check_audio_duration(path): return
+                if not check_audio_duration(path):
+                    return
                 audio = load_audio(path, self.sr, DoFormant=False)
                 # zero phased digital filter cause pre-ringing noise...
                 # audio = signal.filtfilt(self.bh, self.ah, audio)
@@ -96,8 +108,10 @@ class PreProcess:
 
                 idx1 = 0
                 for audio in self.slicer.slice(audio):
-                    frame_start_points = range(0, len(audio), int(self.sr * (self.per - self.overlap)))
-                    
+                    frame_start_points = range(
+                        0, len(audio), int(self.sr * (self.per - self.overlap))
+                    )
+
                     for _, start in enumerate(frame_start_points):
                         if len(audio[start:]) <= self.tail * self.sr:
                             tmp_audio = audio[start:]

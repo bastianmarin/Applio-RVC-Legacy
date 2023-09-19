@@ -90,10 +90,12 @@ def main():
     for i in range(n_gpus):
         children[i].join()
 
+
 def reset_stop_flag():
     with open("csvdb/stop.csv", "w+", newline="") as STOPCSVwrite:
         csv_writer = csv.writer(STOPCSVwrite, delimiter=",")
         csv_writer.writerow(["False"])
+
 
 def create_model(hps, model_f0, model_nof0):
     filter_length_adjusted = hps.data.filter_length // 2 + 1
@@ -108,14 +110,16 @@ def create_model(hps, model_f0, model_nof0):
         segment_size_adjusted,
         **hps.model,
         is_half=is_half,
-        sr=sr
+        sr=sr,
     )
+
 
 def move_model_to_cuda_if_available(model, rank):
     if torch.cuda.is_available():
         return model.cuda(rank)
     else:
         return model
+
 
 def create_optimizer(model, hps):
     return torch.optim.AdamW(
@@ -125,28 +129,37 @@ def create_optimizer(model, hps):
         eps=hps.train.eps,
     )
 
+
 def create_ddp_model(model, rank):
     if torch.cuda.is_available():
         return DDP(model, device_ids=[rank])
     else:
         return DDP(model)
 
+
 def create_dataset(hps, if_f0=True):
-    return TextAudioLoaderMultiNSFsid(hps.data.training_files, hps.data) if if_f0 else TextAudioLoader(hps.data.training_files, hps.data)
+    return (
+        TextAudioLoaderMultiNSFsid(hps.data.training_files, hps.data)
+        if if_f0
+        else TextAudioLoader(hps.data.training_files, hps.data)
+    )
+
 
 def create_sampler(dataset, batch_size, n_gpus, rank):
     return DistributedBucketSampler(
-            dataset,
-            batch_size * n_gpus,
-            # [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1200,1400],  # 16s
-            [100, 200, 300, 400, 500, 600, 700, 800, 900],  # 16s
-            num_replicas=n_gpus,
-            rank=rank,
-            shuffle=True,
-        )
+        dataset,
+        batch_size * n_gpus,
+        # [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1200,1400],  # 16s
+        [100, 200, 300, 400, 500, 600, 700, 800, 900],  # 16s
+        num_replicas=n_gpus,
+        rank=rank,
+        shuffle=True,
+    )
+
 
 def set_collate_fn(if_f0=True):
     return TextAudioCollateMultiNSFsid() if if_f0 else TextAudioCollate()
+
 
 def run(rank, n_gpus, hps):
     global global_step
@@ -164,10 +177,11 @@ def run(rank, n_gpus, hps):
     if torch.cuda.is_available():
         torch.cuda.set_device(rank)
 
-    
-    train_dataset = TextAudioLoaderMultiNSFsid(
-        hps.data.training_files, hps.data
-    ) if hps.if_f0 == 1 else TextAudioLoader(hps.data.training_files, hps.data)
+    train_dataset = (
+        TextAudioLoaderMultiNSFsid(hps.data.training_files, hps.data)
+        if hps.if_f0 == 1
+        else TextAudioLoader(hps.data.training_files, hps.data)
+    )
 
     train_sampler = DistributedBucketSampler(
         train_dataset,
@@ -180,7 +194,7 @@ def run(rank, n_gpus, hps):
     )
     # It is possible that dataloader's workers are out of shared memory. Please try to raise your shared memory limit.
     # num_workers=8 -> num_workers=4
-    
+
     collate_fn = TextAudioCollateMultiNSFsid() if hps.if_f0 == 1 else TextAudioCollate()
     train_loader = DataLoader(
         train_dataset,
@@ -196,7 +210,9 @@ def run(rank, n_gpus, hps):
     net_g = create_model(hps, RVC_Model_f0, RVC_Model_nof0)
 
     net_g = move_model_to_cuda_if_available(net_g, rank)
-    net_d = move_model_to_cuda_if_available(MultiPeriodDiscriminator(hps.model.use_spectral_norm), rank)
+    net_d = move_model_to_cuda_if_available(
+        MultiPeriodDiscriminator(hps.model.use_spectral_norm), rank
+    )
 
     optim_g = create_optimizer(net_g, hps)
     optim_d = create_optimizer(net_d, hps)
@@ -282,11 +298,13 @@ def run(rank, n_gpus, hps):
         scheduler_d.step()
 
 
-def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loaders, logger, writers, cache):
+def train_and_evaluate(
+    rank, epoch, hps, nets, optims, schedulers, scaler, loaders, logger, writers, cache
+):
     net_g, net_d = nets
     optim_g, optim_d = optims
     train_loader, eval_loader = loaders
-    writer, writer_eval = (writers if writers is not None else (None, None))
+    writer, writer_eval = writers if writers is not None else (None, None)
 
     train_loader.batch_sampler.set_epoch(epoch)
     global global_step
@@ -296,7 +314,11 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         net.train()
 
     def save_checkpoint(name):
-        ckpt = net_g.module.state_dict() if hasattr(net_g, "module") else net_g.state_dict()
+        ckpt = (
+            net_g.module.state_dict()
+            if hasattr(net_g, "module")
+            else net_g.state_dict()
+        )
         result = savee(ckpt, hps.sample_rate, hps.if_f0, name, epoch, hps.version, hps)
         logger.info("Saving final ckpt: {}".format(result))
         sleep(1)
@@ -318,17 +340,30 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
 
                 # Load on CUDA
                 if gpu_available:
-                    tensors = [tensor.cuda(rank, non_blocking=True) for tensor in tensors]
+                    tensors = [
+                        tensor.cuda(rank, non_blocking=True) for tensor in tensors
+                    ]
 
                 # Cache on list
-                cache.extend([(batch_idx, tuple(tensor for tensor in tensors if tensor is not None))])
+                cache.extend(
+                    [
+                        (
+                            batch_idx,
+                            tuple(tensor for tensor in tensors if tensor is not None),
+                        )
+                    ]
+                )
         else:
             shuffle(cache)
     else:
         data_iterator = enumerate(train_loader)
 
     def to_gpu_if_available(tensor):
-        return tensor.cuda(rank, non_blocking=True) if torch.cuda.is_available() else tensor
+        return (
+            tensor.cuda(rank, non_blocking=True)
+            if torch.cuda.is_available()
+            else tensor
+        )
 
     # Run steps
     gpu_available = torch.cuda.is_available()
@@ -340,7 +375,17 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         # Data
         ## Unpack
         if hps.if_f0 == 1:
-            phone, phone_lengths, pitch, pitchf, spec, spec_lengths, wave, wave_lengths, sid = info
+            (
+                phone,
+                phone_lengths,
+                pitch,
+                pitchf,
+                spec,
+                spec_lengths,
+                wave,
+                wave_lengths,
+                sid,
+            ) = info
         else:
             phone, phone_lengths, spec, spec_lengths, wave, wave_lengths, sid = info
         ## Load on CUDA
@@ -359,15 +404,33 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
         # Calculate
         with autocast(enabled=fp16_run):
             if hps.if_f0 == 1:
-                y_hat, ids_slice, x_mask, z_mask, (z, z_p, m_p, logs_p, m_q, logs_q) = \
-                    net_g(phone, phone_lengths, pitch, pitchf, spec, spec_lengths, sid)
+                (
+                    y_hat,
+                    ids_slice,
+                    x_mask,
+                    z_mask,
+                    (z, z_p, m_p, logs_p, m_q, logs_q),
+                ) = net_g(phone, phone_lengths, pitch, pitchf, spec, spec_lengths, sid)
             else:
-                y_hat, ids_slice, x_mask, z_mask, (z, z_p, m_p, logs_p, m_q, logs_q) = \
-                    net_g(phone, phone_lengths, spec, spec_lengths, sid)
-            mel = spec_to_mel_torch(spec, hps.data.filter_length, hps.data.n_mel_channels,
-                                    hps.data.sampling_rate, hps.data.mel_fmin, hps.data.mel_fmax)
+                (
+                    y_hat,
+                    ids_slice,
+                    x_mask,
+                    z_mask,
+                    (z, z_p, m_p, logs_p, m_q, logs_q),
+                ) = net_g(phone, phone_lengths, spec, spec_lengths, sid)
+            mel = spec_to_mel_torch(
+                spec,
+                hps.data.filter_length,
+                hps.data.n_mel_channels,
+                hps.data.sampling_rate,
+                hps.data.mel_fmin,
+                hps.data.mel_fmax,
+            )
 
-            y_mel = commons.slice_segments(mel, ids_slice, hps.train.segment_size // hps.data.hop_length)
+            y_mel = commons.slice_segments(
+                mel, ids_slice, hps.train.segment_size // hps.data.hop_length
+            )
             y_hat_mel = mel_spectrogram_torch(
                 y_hat.float().squeeze(1),
                 hps.data.filter_length,
@@ -379,18 +442,22 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
                 hps.data.mel_fmax,
             )
 
-            if fp16_run: y_hat_mel = y_hat_mel.half()
+            if fp16_run:
+                y_hat_mel = y_hat_mel.half()
 
-            wave = commons.slice_segments(wave, ids_slice * hps.data.hop_length,
-                                        hps.train.segment_size)  # slice
+            wave = commons.slice_segments(
+                wave, ids_slice * hps.data.hop_length, hps.train.segment_size
+            )  # slice
 
             y_d_hat_r, y_d_hat_g, _, _ = net_d(wave, y_hat.detach())
 
-            loss_disc, losses_disc_r, losses_disc_g = discriminator_loss(y_d_hat_r, y_d_hat_g)
+            loss_disc, losses_disc_r, losses_disc_g = discriminator_loss(
+                y_d_hat_r, y_d_hat_g
+            )
             net_d_params = net_d.parameters()
             net_g_params = net_g.parameters()
             lr_scalar = optim_g.param_groups[0]["lr"]
-            
+
             optim_d.zero_grad()
             scaler.scale(loss_disc).backward()
             scaler.unscale_(optim_d)
@@ -415,7 +482,11 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
 
             if rank == 0 and global_step % hps.train.log_interval == 0:
                 lr = lr_scalar  # use stored lr scalar here
-                logger.info("Train Epoch: {} [{:.0f}%]".format(epoch, 100.0 * batch_idx / len(train_loader)))
+                logger.info(
+                    "Train Epoch: {} [{:.0f}%]".format(
+                        epoch, 100.0 * batch_idx / len(train_loader)
+                    )
+                )
 
                 # Amor For Tensorboard display
                 loss_mel, loss_kl = min(loss_mel, 75), min(loss_kl, 9)
@@ -435,11 +506,17 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
                 }
 
                 image_dict = {
-                    "slice/mel_org": utils.plot_spectrogram_to_numpy(y_mel[0].data.cpu().numpy()),
-                    "slice/mel_gen": utils.plot_spectrogram_to_numpy(y_hat_mel[0].data.cpu().numpy()),
-                    "all/mel": utils.plot_spectrogram_to_numpy(mel[0].data.cpu().numpy()),
+                    "slice/mel_org": utils.plot_spectrogram_to_numpy(
+                        y_mel[0].data.cpu().numpy()
+                    ),
+                    "slice/mel_gen": utils.plot_spectrogram_to_numpy(
+                        y_hat_mel[0].data.cpu().numpy()
+                    ),
+                    "all/mel": utils.plot_spectrogram_to_numpy(
+                        mel[0].data.cpu().numpy()
+                    ),
                 }
-                    
+
                 utils.summarize(
                     writer=writer,
                     global_step=global_step,
@@ -454,15 +531,21 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
             model_dir = hps.model_dir
             learning_rate = hps.train.learning_rate
             name_epoch = f"{hps.name}_e{epoch}"
-            models = {'G': net_g, 'D': net_d}
-            optims = {'G': optim_g, 'D': optim_d}
-            
+            models = {"G": net_g, "D": net_d}
+            optims = {"G": optim_g, "D": optim_d}
+
             for model_name, model in models.items():
                 path = os.path.join(model_dir, f"{model_name}_{save_format}.pth")
-                utils.save_checkpoint(model, optims[model_name], learning_rate, epoch, path)
+                utils.save_checkpoint(
+                    model, optims[model_name], learning_rate, epoch, path
+                )
 
             if hps.save_every_weights == "1":
-                ckpt = net_g.module.state_dict() if hasattr(net_g, "module") else net_g.state_dict()
+                ckpt = (
+                    net_g.module.state_dict()
+                    if hasattr(net_g, "module")
+                    else net_g.state_dict()
+                )
                 logger.info(
                     "saving ckpt %s_%s"
                     % (
@@ -481,17 +564,24 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler, loade
 
     stopbtn = False
     try:
-        with open("csvdb/stop.csv", 'r') as csv_file:
+        with open("csvdb/stop.csv", "r") as csv_file:
             stopbtn_str = next(csv.reader(csv_file), [None])[0]
-            if stopbtn_str is not None: stopbtn = stopbtn_str.lower() == 'true'
+            if stopbtn_str is not None:
+                stopbtn = stopbtn_str.lower() == "true"
     except (ValueError, TypeError, FileNotFoundError, IndexError) as e:
         print(f"Handling exception: {e}")
         stopbtn = False
 
     if stopbtn:
         logger.info("Stop Button was pressed. The program is closed.")
-        ckpt = net_g.module.state_dict() if hasattr(net_g, "module") else net_g.state_dict()
-        logger.info(f"Saving final ckpt:{savee(ckpt, hps.sample_rate, hps.if_f0, hps.name, epoch, hps.version, hps)}")
+        ckpt = (
+            net_g.module.state_dict()
+            if hasattr(net_g, "module")
+            else net_g.state_dict()
+        )
+        logger.info(
+            f"Saving final ckpt:{savee(ckpt, hps.sample_rate, hps.if_f0, hps.name, epoch, hps.version, hps)}"
+        )
         sleep(1)
         reset_stop_flag()
         os._exit(2333333)

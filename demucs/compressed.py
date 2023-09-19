@@ -20,9 +20,16 @@ def get_musdb_tracks(root, *args, **kwargs):
 
 
 class StemsSet:
-    def __init__(self, tracks, metadata, duration=None, stride=1,
-                 samplerate=44100, channels=2, streams=slice(None)):
-
+    def __init__(
+        self,
+        tracks,
+        metadata,
+        duration=None,
+        stride=1,
+        samplerate=44100,
+        channels=2,
+        streams=slice(None),
+    ):
         self.metadata = []
         for name, path in tracks.items():
             meta = dict(metadata[name])
@@ -30,7 +37,9 @@ class StemsSet:
             meta["name"] = name
             self.metadata.append(meta)
             if duration is not None and meta["duration"] < duration:
-                raise ValueError(f"Track {name} duration is too small {meta['duration']}")
+                raise ValueError(
+                    f"Track {name} duration is too small {meta['duration']}"
+                )
         self.metadata.sort(key=lambda x: x["name"])
         self.duration = duration
         self.stride = stride
@@ -61,11 +70,13 @@ class StemsSet:
             if index >= examples:
                 index -= examples
                 continue
-            streams = AudioFile(meta["path"]).read(seek_time=index * self.stride,
-                                                   duration=self.duration,
-                                                   channels=self.channels,
-                                                   samplerate=self.samplerate,
-                                                   streams=self.streams)
+            streams = AudioFile(meta["path"]).read(
+                seek_time=index * self.stride,
+                duration=self.duration,
+                channels=self.channels,
+                samplerate=self.samplerate,
+                streams=self.streams,
+            )
             return (streams - meta["mean"]) / meta["std"]
 
 
@@ -74,7 +85,11 @@ def _get_track_metadata(path):
     # normalized but it should be good enough.
     audio = AudioFile(path)
     mix = audio.read(streams=0, channels=1, samplerate=44100)
-    return {"duration": audio.duration, "std": mix.std().item(), "mean": mix.mean().item()}
+    return {
+        "duration": audio.duration,
+        "std": mix.std().item(),
+        "mean": mix.mean().item(),
+    }
 
 
 def _build_metadata(tracks, workers=10):
@@ -101,15 +116,19 @@ def get_compressed_datasets(args, samples):
     metadata = json.load(open(metadata_file))
     duration = Fraction(samples, args.samplerate)
     stride = Fraction(args.data_stride, args.samplerate)
-    train_set = StemsSet(get_musdb_tracks(args.musdb, subsets=["train"], split="train"),
-                         metadata,
-                         duration=duration,
-                         stride=stride,
-                         streams=slice(1, None),
-                         samplerate=args.samplerate,
-                         channels=args.audio_channels)
-    valid_set = StemsSet(get_musdb_tracks(args.musdb, subsets=["train"], split="valid"),
-                         metadata,
-                         samplerate=args.samplerate,
-                         channels=args.audio_channels)
+    train_set = StemsSet(
+        get_musdb_tracks(args.musdb, subsets=["train"], split="train"),
+        metadata,
+        duration=duration,
+        stride=stride,
+        streams=slice(1, None),
+        samplerate=args.samplerate,
+        channels=args.audio_channels,
+    )
+    valid_set = StemsSet(
+        get_musdb_tracks(args.musdb, subsets=["train"], split="valid"),
+        metadata,
+        samplerate=args.samplerate,
+        channels=args.audio_channels,
+    )
     return train_set, valid_set

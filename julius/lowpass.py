@@ -69,8 +69,14 @@ class LowPassFilters(torch.nn.Module):
     [1, 4, 12, 21, 1024]
     """
 
-    def __init__(self, cutoffs: Sequence[float], stride: int = 1, pad: bool = True,
-                 zeros: float = 8, fft: Optional[bool] = None):
+    def __init__(
+        self,
+        cutoffs: Sequence[float],
+        stride: int = 1,
+        pad: bool = True,
+        zeros: float = 8,
+        fft: Optional[bool] = None,
+    ):
         super().__init__()
         self.cutoffs = list(cutoffs)
         if min(self.cutoffs) < 0:
@@ -102,7 +108,7 @@ class LowPassFilters(torch.nn.Module):
         shape = list(input.shape)
         input = input.view(-1, 1, shape[-1])
         if self.pad:
-            input = F.pad(input, (self.half_size, self.half_size), mode='replicate')
+            input = F.pad(input, (self.half_size, self.half_size), mode="replicate")
         if self.fft:
             out = fft_conv1d(input, self.filters, stride=self.stride)
         else:
@@ -130,8 +136,14 @@ class LowPassFilter(torch.nn.Module):
     [4, 62]
     """
 
-    def __init__(self, cutoff: float, stride: int = 1, pad: bool = True,
-                 zeros: float = 8, fft: Optional[bool] = None):
+    def __init__(
+        self,
+        cutoff: float,
+        stride: int = 1,
+        pad: bool = True,
+        zeros: float = 8,
+        fft: Optional[bool] = None,
+    ):
         super().__init__()
         self._lowpasses = LowPassFilters([cutoff], stride, pad, zeros, fft)
 
@@ -162,18 +174,28 @@ class LowPassFilter(torch.nn.Module):
         return simple_repr(self)
 
 
-def lowpass_filters(input: torch.Tensor,  cutoffs: Sequence[float],
-                    stride: int = 1, pad: bool = True,
-                    zeros: float = 8, fft: Optional[bool] = None):
+def lowpass_filters(
+    input: torch.Tensor,
+    cutoffs: Sequence[float],
+    stride: int = 1,
+    pad: bool = True,
+    zeros: float = 8,
+    fft: Optional[bool] = None,
+):
     """
     Functional version of `LowPassFilters`, refer to this class for more information.
     """
     return LowPassFilters(cutoffs, stride, pad, zeros, fft).to(input)(input)
 
 
-def lowpass_filter(input: torch.Tensor,  cutoff: float,
-                   stride: int = 1, pad: bool = True,
-                   zeros: float = 8, fft: Optional[bool] = None):
+def lowpass_filter(
+    input: torch.Tensor,
+    cutoff: float,
+    stride: int = 1,
+    pad: bool = True,
+    zeros: float = 8,
+    fft: Optional[bool] = None,
+):
     """
     Same as `lowpass_filters` but with a single cutoff frequency.
     Output will not have a dimension inserted in the front.

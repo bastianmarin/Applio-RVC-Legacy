@@ -26,7 +26,10 @@ class ResampleFrac(torch.nn.Module):
     """
     Resampling from the sample rate `old_sr` to `new_sr`.
     """
-    def __init__(self, old_sr: int, new_sr: int, zeros: int = 24, rolloff: float = 0.945):
+
+    def __init__(
+        self, old_sr: int, new_sr: int, zeros: int = 24, rolloff: float = 0.945
+    ):
         """
         Args:
             old_sr (int): sample rate of the input signal x.
@@ -100,10 +103,10 @@ class ResampleFrac(torch.nn.Module):
         # future work.
         idx = torch.arange(-self._width, self._width + self.old_sr).float()
         for i in range(self.new_sr):
-            t = (-i/self.new_sr + idx/self.old_sr) * sr
+            t = (-i / self.new_sr + idx / self.old_sr) * sr
             t = t.clamp_(-self.zeros, self.zeros)
             t *= math.pi
-            window = torch.cos(t/self.zeros/2)**2
+            window = torch.cos(t / self.zeros / 2) ** 2
             kernel = sinc(t) * window
             # Renormalize kernel to ensure a constant signal is preserved.
             kernel.div_(kernel.sum())
@@ -111,7 +114,9 @@ class ResampleFrac(torch.nn.Module):
 
         self.register_buffer("kernel", torch.stack(kernels).view(self.new_sr, 1, -1))
 
-    def forward(self, x: torch.Tensor, output_length: Optional[int] = None, full: bool = False):
+    def forward(
+        self, x: torch.Tensor, output_length: Optional[int] = None, full: bool = False
+    ):
         """
         Resample x.
         Args:
@@ -130,7 +135,9 @@ class ResampleFrac(torch.nn.Module):
         shape = x.shape
         length = x.shape[-1]
         x = x.reshape(-1, length)
-        x = F.pad(x[:, None], (self._width, self._width + self.old_sr), mode='replicate')
+        x = F.pad(
+            x[:, None], (self._width, self._width + self.old_sr), mode="replicate"
+        )
         ys = F.conv1d(x, self.kernel, stride=self.old_sr)  # type: ignore
         y = ys.transpose(1, 2).reshape(list(shape[:-1]) + [-1])
 
@@ -150,9 +157,15 @@ class ResampleFrac(torch.nn.Module):
         return simple_repr(self)
 
 
-def resample_frac(x: torch.Tensor, old_sr: int, new_sr: int,
-                  zeros: int = 24, rolloff: float = 0.945,
-                  output_length: Optional[int] = None, full: bool = False):
+def resample_frac(
+    x: torch.Tensor,
+    old_sr: int,
+    new_sr: int,
+    zeros: int = 24,
+    rolloff: float = 0.945,
+    output_length: Optional[int] = None,
+    full: bool = False,
+):
     """
     Functional version of `ResampleFrac`, refer to its documentation for more information.
 
@@ -166,6 +179,7 @@ def resample_frac(x: torch.Tensor, old_sr: int, new_sr: int,
 
 # Easier implementations for downsampling and upsampling by a factor of 2
 # Kept for testing and reference
+
 
 def _kernel_upsample2_downsample2(zeros):
     # Kernel for upsampling and downsampling by a factor of 2. Interestingly,
@@ -190,7 +204,9 @@ def _upsample2(x, zeros=24):
     """
     *other, time = x.shape
     kernel = _kernel_upsample2_downsample2(zeros).to(x)
-    out = F.conv1d(x.view(-1, 1, time), kernel, padding=zeros)[..., 1:].view(*other, time)
+    out = F.conv1d(x.view(-1, 1, time), kernel, padding=zeros)[..., 1:].view(
+        *other, time
+    )
     y = torch.stack([x, out], dim=-1)
     return y.view(*other, -1)
 
@@ -211,6 +227,7 @@ def _downsample2(x, zeros=24):
     xodd = x[..., 1::2]
     *other, time = xodd.shape
     kernel = _kernel_upsample2_downsample2(zeros).to(x)
-    out = xeven + F.conv1d(xodd.view(-1, 1, time), kernel, padding=zeros)[..., :-1].view(
-        *other, time)
+    out = xeven + F.conv1d(xodd.view(-1, 1, time), kernel, padding=zeros)[
+        ..., :-1
+    ].view(*other, time)
     return out.view(*other, -1).mul(0.5)
