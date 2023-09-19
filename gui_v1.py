@@ -33,8 +33,10 @@ class Harvest(multiprocessing.Process):
 
 if __name__ == "__main__":
     from multiprocessing import Queue
+    from queue import Empty
     import numpy as np
-    import re
+    import multiprocessing
+    import traceback, re
     import json
     import PySimpleGUI as sg
     import sounddevice as sd

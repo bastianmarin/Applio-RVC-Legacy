@@ -2,7 +2,7 @@
 
 对源特征进行检索
 """
-import torch, os, parselmouth
+import torch, pdb, os, parselmouth
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 import numpy as np
@@ -25,6 +25,7 @@ from fairseq import checkpoint_utils
 # import pyworld
 import librosa
 import torch.nn.functional as F
+import scipy.signal as signal
 
 # import torchcrepe
 from time import time as ttime

@@ -1,7 +1,9 @@
 import sys
 from shutil import rmtree
 import shutil
+import json  # Mangio fork using json for preset saving
 import datetime
+import unicodedata
 from glob import glob1
 from signal import SIGTERM
 import librosa
@@ -26,7 +28,7 @@ import nltk
 
 nltk.download("punkt", quiet=True)
 from nltk.tokenize import sent_tokenize
-from bark import SAMPLE_RATE
+from bark import generate_audio, SAMPLE_RATE
 
 np = lazyload("numpy")
 torch = lazyload("torch")
