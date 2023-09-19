@@ -1,11 +1,6 @@
-import json
 import os
-import gc
 import psutil
-import requests
 import subprocess
-import time
-import logging
 import sys
 import shutil
 now_dir = os.getcwd()

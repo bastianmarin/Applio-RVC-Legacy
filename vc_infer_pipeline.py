@@ -1,10 +1,7 @@
-from scipy.io import wavfile
-import numpy as np, parselmouth, torch, pdb, sys, os
+import numpy as np, parselmouth, torch, sys
 from time import time as ttime
 import torch.nn.functional as F
-import torchcrepe  # Fork feature. Use the crepe f0 algorithm. New dependency (pip install torchcrepe)
 from torch import Tensor
-import scipy.signal as signal
 import pyworld, os, traceback, faiss, librosa, torchcrepe
 from scipy import signal
 from functools import lru_cache
