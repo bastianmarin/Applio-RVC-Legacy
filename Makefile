@@ -48,10 +48,10 @@ basev2: ## Download version 2 pre-trained models (Do only once after cloning the
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0G32k.pth -d pretrained_v2 -o f0G32k.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0G40k.pth -d pretrained_v2 -o f0G40k.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0G48k.pth -d pretrained_v2 -o f0G48k.pth
-	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/poiqazwsx/Ov2Super32kfix/resolve/main/f0Ov2Super32kG.pth -d pretrained_v2 -o f0G32k_OV2.pth
-	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/poiqazwsx/Ov2Super32kfix/resolve/main/f0Ov2Super32kD.pth -d pretrained_v2 -o f0D32k_OV2.pth
-	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/ORVC/Ov2Super/resolve/main/f0Ov2Super40kG.pth -d pretrained_v2 -o f0G40k_OV2.pth
-	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/ORVC/Ov2Super/resolve/main/f0Ov2Super40kD.pth -d pretrained_v2 -o f0D40k_OV2.pth
+	## aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/poiqazwsx/Ov2Super32kfix/resolve/main/f0Ov2Super32kG.pth -d pretrained_v2 -o f0G32k_OV2.pth
+	## aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/poiqazwsx/Ov2Super32kfix/resolve/main/f0Ov2Super32kD.pth -d pretrained_v2 -o f0D32k_OV2.pth
+	## aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/ORVC/Ov2Super/resolve/main/f0Ov2Super40kG.pth -d pretrained_v2 -o f0G40k_OV2.pth
+	## aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/ORVC/Ov2Super/resolve/main/f0Ov2Super40kD.pth -d pretrained_v2 -o f0D40k_OV2.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/Eddycrack864/Amazarashi-AI-Voice/resolve/main/D_RIN_E.pth -d pretrained_v2 -o D_RIN_E.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/Eddycrack864/Amazarashi-AI-Voice/resolve/main/G_RIN_E.pth -d pretrained_v2 -o G_RIN_E.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/HP2-人声vocals+非人声instrumentals.pth -d uvr5_weights -o HP2-人声vocals+非人声instrumentals.pth
