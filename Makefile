@@ -48,6 +48,12 @@ basev2: ## Download version 2 pre-trained models (Do only once after cloning the
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0G32k.pth -d pretrained_v2 -o f0G32k.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0G40k.pth -d pretrained_v2 -o f0G40k.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/f0G48k.pth -d pretrained_v2 -o f0G48k.pth
+	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/poiqazwsx/Ov2Super32kfix/resolve/main/f0Ov2Super32kD.pth -d pretrained_v2 -o f0Ov2Super32kD.pth
+	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/poiqazwsx/Ov2Super32kfix/resolve/main/f0Ov2Super32kG.pth -d pretrained_v2 -o f0Ov2Super32kG.pth
+	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/ORVC/Ov2Super/resolve/main/f0Ov2Super40kD.pth -d pretrained_v2 -o f0Ov2Super40kD.pth
+	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/ORVC/Ov2Super/resolve/main/f0Ov2Super40kG.pth -d pretrained_v2 -o f0Ov2Super40kG.pth
+	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/MUSTAR/RIN_E3/resolve/main/RIN_E3_D.pth -d pretrained_v2 -o RIN_E3_D.pth
+	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/MUSTAR/RIN_E3/resolve/main/RIN_E3_G.pth -d pretrained_v2 -o RIN_E3_G.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/HP2-人声vocals+非人声instrumentals.pth -d uvr5_weights -o HP2-人声vocals+非人声instrumentals.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/uvr5_weights/HP5-主旋律人声vocals+其他instrumentals.pth -d uvr5_weights -o HP5-主旋律人声vocals+其他instrumentals.pth
 	aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/hubert_base.pt -d ./ -o hubert_base.pt
