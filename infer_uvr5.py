@@ -61,7 +61,7 @@ class _audio_pre_:
                 (
                     X_wave[d],
                     _,
-                ) = librosa.core.load(  
+                ) = librosa.core.load(
                     music_file,
                     bp["sr"],
                     False,
@@ -228,7 +228,7 @@ class _audio_pre_new:
                 (
                     X_wave[d],
                     _,
-                ) = librosa.core.load( 
+                ) = librosa.core.load(
                     music_file,
                     bp["sr"],
                     False,

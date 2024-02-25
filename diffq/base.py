@@ -27,8 +27,14 @@ class BaseQuantizer:
         # to share state between the different Quantizers
         other: tp.Optional[tp.Any]
 
-    def __init__(self, model: torch.nn.Module, min_size: float = 0.01, float16: bool = False,
-                 exclude: tp.Optional[tp.List[str]] = [], detect_bound: bool = True):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        min_size: float = 0.01,
+        float16: bool = False,
+        exclude: tp.Optional[tp.List[str]] = [],
+        detect_bound: bool = True,
+    ):
         self.model = model
         self.min_size = min_size
         self.float16 = float16
@@ -72,7 +78,9 @@ class BaseQuantizer:
                     else:
                         self._others.append(param)
                 else:
-                    qparam = self._register_param(name, param, module, previous.get(id(param)))
+                    qparam = self._register_param(
+                        name, param, module, previous.get(id(param))
+                    )
                     if self.detect_bound:
                         previous[id(param)] = qparam
                     self._qparams.append(qparam)
@@ -104,8 +112,11 @@ class BaseQuantizer:
         if self._quantized:
             return
         if save:
-            self._saved = [qp.param.data.to('cpu', copy=True)
-                           for qp in self._qparams if qp.other is None]
+            self._saved = [
+                qp.param.data.to("cpu", copy=True)
+                for qp in self._qparams
+                if qp.other is None
+            ]
         self.restore_quantized_state(self.get_quantized_state())
         self._quantized = True
         self._fix_rnns()
@@ -146,7 +157,8 @@ class BaseQuantizer:
         for rnn in self._rnns:
             rnn._flat_weights = [
                 (lambda wn: getattr(rnn, wn) if hasattr(rnn, wn) else None)(wn)
-                for wn in rnn._flat_weights_names]
+                for wn in rnn._flat_weights_names
+            ]
             if flatten:
                 rnn.flatten_parameters()
 
@@ -172,8 +184,11 @@ class BaseQuantizer:
             float16_params.append(q)
 
         return {
-            "quantized": [self._quantize_param(qparam) for qparam in self._qparams
-                          if qparam.other is None],
+            "quantized": [
+                self._quantize_param(qparam)
+                for qparam in self._qparams
+                if qparam.other is None
+            ],
             "float16": float16_params,
             "others": [p.data.clone() for p in self._others],
         }
@@ -184,7 +199,9 @@ class BaseQuantizer:
         """
         raise NotImplementedError()
 
-    def _unquantize_param(self, qparam: _QuantizedParam, quantized: tp.Any) -> torch.Tensor:
+    def _unquantize_param(
+        self, qparam: _QuantizedParam, quantized: tp.Any
+    ) -> torch.Tensor:
         """
         To be overriden.
         """
@@ -220,7 +237,7 @@ class BaseQuantizer:
         """
         Returns an estimate of the quantized model size.
         """
-        total = torch.tensor(0.)
+        total = torch.tensor(0.0)
         for p in self._float16:
             total += 16 * p.numel()
         for p in self._others:
@@ -247,7 +264,7 @@ class BaseQuantizer:
         out = io.BytesIO()
         torch.save(self.get_quantized_state(), out)
         ms = _parallel_compress_len(out.getvalue(), compress_level, num_workers)
-        return ms / 2 ** 20
+        return ms / 2**20
 
 
 def _compress_len(data, compress_level):
@@ -257,6 +274,10 @@ def _compress_len(data, compress_level):
 def _parallel_compress_len(data, compress_level, num_workers):
     num_workers = min(cpu_count(), num_workers)
     chunk_size = int(math.ceil(len(data) / num_workers))
-    chunks = [data[offset:offset + chunk_size] for offset in range(0, len(data), chunk_size)]
+    chunks = [
+        data[offset : offset + chunk_size] for offset in range(0, len(data), chunk_size)
+    ]
     with futures.ProcessPoolExecutor(num_workers) as pool:
-        return sum(pool.map(partial(_compress_len, compress_level=compress_level), chunks))
+        return sum(
+            pool.map(partial(_compress_len, compress_level=compress_level), chunks)
+        )

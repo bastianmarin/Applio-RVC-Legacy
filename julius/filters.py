@@ -10,7 +10,12 @@ from typing import Sequence, Optional
 import torch
 
 # Import all lowpass filters for consistency.
-from .lowpass import lowpass_filter, lowpass_filters, LowPassFilter,  LowPassFilters  # noqa
+from .lowpass import (
+    lowpass_filter,
+    lowpass_filters,
+    LowPassFilter,
+    LowPassFilters,
+)  # noqa
 from .utils import simple_repr
 
 
@@ -57,8 +62,14 @@ class HighPassFilters(torch.nn.Module):
     [1, 4, 12, 21, 1024]
     """
 
-    def __init__(self, cutoffs: Sequence[float], stride: int = 1, pad: bool = True,
-                 zeros: float = 8, fft: Optional[bool] = None):
+    def __init__(
+        self,
+        cutoffs: Sequence[float],
+        stride: int = 1,
+        pad: bool = True,
+        zeros: float = 8,
+        fft: Optional[bool] = None,
+    ):
         super().__init__()
         self._lowpasses = LowPassFilters(cutoffs, stride, pad, zeros, fft)
 
@@ -92,7 +103,7 @@ class HighPassFilters(torch.nn.Module):
         else:
             start = self._lowpasses.half_size
             end = -start
-        input = input[..., start:end:self.stride]
+        input = input[..., start : end : self.stride]
         highs = input - lows
         return highs
 
@@ -115,8 +126,14 @@ class HighPassFilter(torch.nn.Module):
     [4, 124]
     """
 
-    def __init__(self, cutoff: float, stride: int = 1, pad: bool = True,
-                 zeros: float = 8, fft: Optional[bool] = None):
+    def __init__(
+        self,
+        cutoff: float,
+        stride: int = 1,
+        pad: bool = True,
+        zeros: float = 8,
+        fft: Optional[bool] = None,
+    ):
         super().__init__()
         self._highpasses = HighPassFilters([cutoff], stride, pad, zeros, fft)
 
@@ -147,18 +164,28 @@ class HighPassFilter(torch.nn.Module):
         return simple_repr(self)
 
 
-def highpass_filters(input: torch.Tensor,  cutoffs: Sequence[float],
-                     stride: int = 1, pad: bool = True,
-                     zeros: float = 8, fft: Optional[bool] = None):
+def highpass_filters(
+    input: torch.Tensor,
+    cutoffs: Sequence[float],
+    stride: int = 1,
+    pad: bool = True,
+    zeros: float = 8,
+    fft: Optional[bool] = None,
+):
     """
     Functional version of `HighPassFilters`, refer to this class for more information.
     """
     return HighPassFilters(cutoffs, stride, pad, zeros, fft).to(input)(input)
 
 
-def highpass_filter(input: torch.Tensor,  cutoff: float,
-                    stride: int = 1, pad: bool = True,
-                    zeros: float = 8, fft: Optional[bool] = None):
+def highpass_filter(
+    input: torch.Tensor,
+    cutoff: float,
+    stride: int = 1,
+    pad: bool = True,
+    zeros: float = 8,
+    fft: Optional[bool] = None,
+):
     """
     Functional version of `HighPassFilter`, refer to this class for more information.
     Output will not have a dimension inserted in the front.
@@ -208,13 +235,24 @@ class BandPassFilter(torch.nn.Module):
     [4, 12, 21, 1024]
     """
 
-    def __init__(self, cutoff_low: float, cutoff_high: float, stride: int = 1, pad: bool = True,
-                 zeros: float = 8, fft: Optional[bool] = None):
+    def __init__(
+        self,
+        cutoff_low: float,
+        cutoff_high: float,
+        stride: int = 1,
+        pad: bool = True,
+        zeros: float = 8,
+        fft: Optional[bool] = None,
+    ):
         super().__init__()
         if cutoff_low > cutoff_high:
-            raise ValueError(f"Lower cutoff {cutoff_low} should be less than "
-                             f"higher cutoff {cutoff_high}.")
-        self._lowpasses = LowPassFilters([cutoff_low, cutoff_high], stride, pad, zeros, fft)
+            raise ValueError(
+                f"Lower cutoff {cutoff_low} should be less than "
+                f"higher cutoff {cutoff_high}."
+            )
+        self._lowpasses = LowPassFilters(
+            [cutoff_low, cutoff_high], stride, pad, zeros, fft
+        )
 
     @property
     def cutoff_low(self):
@@ -248,11 +286,19 @@ class BandPassFilter(torch.nn.Module):
         return simple_repr(self)
 
 
-def bandpass_filter(input: torch.Tensor,  cutoff_low: float, cutoff_high: float,
-                    stride: int = 1, pad: bool = True,
-                    zeros: float = 8, fft: Optional[bool] = None):
+def bandpass_filter(
+    input: torch.Tensor,
+    cutoff_low: float,
+    cutoff_high: float,
+    stride: int = 1,
+    pad: bool = True,
+    zeros: float = 8,
+    fft: Optional[bool] = None,
+):
     """
     Functional version of `BandPassfilter`, refer to this class for more information.
     Output will not have a dimension inserted in the front.
     """
-    return BandPassFilter(cutoff_low, cutoff_high, stride, pad, zeros, fft).to(input)(input)
+    return BandPassFilter(cutoff_low, cutoff_high, stride, pad, zeros, fft).to(input)(
+        input
+    )

@@ -16,10 +16,14 @@ def sinc(x: torch.Tensor):
 
     __Warning__: the input is not multiplied by `pi`!
     """
-    return torch.where(x == 0, torch.tensor(1., device=x.device, dtype=x.dtype), torch.sin(x) / x)
+    return torch.where(
+        x == 0, torch.tensor(1.0, device=x.device, dtype=x.dtype), torch.sin(x) / x
+    )
 
 
-def pad_to(tensor: torch.Tensor, target_length: int, mode: str = 'constant', value: float = 0):
+def pad_to(
+    tensor: torch.Tensor, target_length: int, mode: str = "constant", value: float = 0
+):
     """
     Pad the given tensor to the given length, with 0s on the right.
     """
@@ -46,7 +50,7 @@ def mel_to_hz(mels: torch.Tensor):
     Args:
         mels (torch.Tensor): mel frequencies to convert.
     """
-    return 700 * (10**(mels / 2595) - 1)
+    return 700 * (10 ** (mels / 2595) - 1)
 
 
 def mel_frequencies(n_mels: int, fmin: float, fmax: float):
@@ -117,6 +121,6 @@ def unfold(input, kernel_size: int, stride: int):
     strides: tp.List[int] = []
     for dim in range(padded.dim()):
         strides.append(padded.stride(dim))
-    assert strides.pop(-1) == 1, 'data should be contiguous'
+    assert strides.pop(-1) == 1, "data should be contiguous"
     strides = strides + [stride, 1]
     return padded.as_strided(shape + [n_frames, kernel_size], strides)

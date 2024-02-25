@@ -271,9 +271,11 @@ def load_wav_to_torch(full_path):
 
 
 def load_filepaths_and_text(filename, split="|"):
-    with open(filename, encoding='utf-8') as f:
+    with open(filename, encoding="utf-8") as f:
         filepaths_and_text = [line.strip().split(split) for line in f]
-        filepaths_and_text = [item for item in filepaths_and_text if len(item) == 5]  # ensure there are 5 items.
+        filepaths_and_text = [
+            item for item in filepaths_and_text if len(item) == 5
+        ]  # ensure there are 5 items.
     return filepaths_and_text
 
 

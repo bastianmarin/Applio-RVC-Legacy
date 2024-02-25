@@ -657,9 +657,11 @@ def vc_multi(
                     output_path = f"{opt_root}/{base_name}.{format1}"
                     path, extension = output_path, format1
                     path, extension = (
-                        output_path
-                        if format1 in ["wav", "flac", "mp3", "ogg", "aac", "m4a"]
-                        else f"{output_path}.wav",
+                        (
+                            output_path
+                            if format1 in ["wav", "flac", "mp3", "ogg", "aac", "m4a"]
+                            else f"{output_path}.wav"
+                        ),
                         format1,
                     )
                     SFWrite(path, audio_opt, tgt_sr)
@@ -1331,9 +1333,7 @@ def click_train(
                 + (
                     ".wav.npy"
                     if path in [f0_dir, f0nsf_dir]
-                    else ".wav"
-                    if path == gt_wavs_dir
-                    else ".npy"
+                    else ".wav" if path == gt_wavs_dir else ".npy"
                 )
                 for path in paths
             ]
@@ -2868,12 +2868,16 @@ def GradioSetup(UTheme=gr.themes.Soft()):
                                     protect1,
                                     format1,
                                     crepe_hop_length,
-                                    minpitch_slider
-                                    if (not rvc_globals.NotesOrHertz)
-                                    else minpitch_txtbox,
-                                    maxpitch_slider
-                                    if (not rvc_globals.NotesOrHertz)
-                                    else maxpitch_txtbox,
+                                    (
+                                        minpitch_slider
+                                        if (not rvc_globals.NotesOrHertz)
+                                        else minpitch_txtbox
+                                    ),
+                                    (
+                                        maxpitch_slider
+                                        if (not rvc_globals.NotesOrHertz)
+                                        else maxpitch_txtbox
+                                    ),
                                     f0_autotune,
                                 ],
                                 [vc_output3],

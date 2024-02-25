@@ -167,9 +167,9 @@ class RVC:
                 f0 = f0[2:-3]
             else:
                 f0 = f0[2:-1]
-            f0bak[
-                part_length * idx // 160 : part_length * idx // 160 + f0.shape[0]
-            ] = f0
+            f0bak[part_length * idx // 160 : part_length * idx // 160 + f0.shape[0]] = (
+                f0
+            )
         f0bak = signal.medfilt(f0bak, 3)
         f0bak *= pow(2, f0_up_key / 12)
         return self.get_f0_post(f0bak)
@@ -200,7 +200,7 @@ class RVC:
 
             print("loading rmvpe model")
             self.model_rmvpe = RMVPE(
-                "rmvpe.pt", is_half=self.is_half, device=self.device,onnx=False
+                "rmvpe.pt", is_half=self.is_half, device=self.device, onnx=False
             )
             # self.model_rmvpe = RMVPE("aug2_58000_half.pt", is_half=self.is_half, device=self.device)
         f0 = self.model_rmvpe.infer_from_audio(x, thred=0.03)
