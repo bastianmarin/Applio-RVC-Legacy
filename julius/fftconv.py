@@ -11,6 +11,7 @@ evaluated with a stride of 1.
 from typing import Optional
 
 import torch
+
 try:
     import torch.fft as new_fft
 except ImportError:
@@ -61,17 +62,25 @@ def _compl_mul_conjugate(a: torch.Tensor, b: torch.Tensor):
     # Once the support is widespread, this can likely go away.
 
     op = "bcft,dct->bdft"
-    return torch.stack([
-        torch.einsum(op, a[..., 0], b[..., 0]) + torch.einsum(op, a[..., 1], b[..., 1]),
-        torch.einsum(op, a[..., 1], b[..., 0]) - torch.einsum(op, a[..., 0], b[..., 1])
-    ],
-                       dim=-1)
+    return torch.stack(
+        [
+            torch.einsum(op, a[..., 0], b[..., 0])
+            + torch.einsum(op, a[..., 1], b[..., 1]),
+            torch.einsum(op, a[..., 1], b[..., 0])
+            - torch.einsum(op, a[..., 0], b[..., 1]),
+        ],
+        dim=-1,
+    )
 
 
 def fft_conv1d(
-        input: torch.Tensor, weight: torch.Tensor,
-        bias: Optional[torch.Tensor] = None, stride: int = 1, padding: int = 0,
-        block_ratio: float = 5):
+    input: torch.Tensor,
+    weight: torch.Tensor,
+    bias: Optional[torch.Tensor] = None,
+    stride: int = 1,
+    padding: int = 0,
+    block_ratio: float = 5,
+):
     """
     Same as `torch.nn.functional.conv1d` but using FFT for the convolution.
     Please check PyTorch documentation for more information.
@@ -106,8 +115,10 @@ def fft_conv1d(
     out_channels, _, kernel_size = weight.shape
 
     if length < kernel_size:
-        raise RuntimeError(f"Input should be at least as large as the kernel size {kernel_size}, "
-                           f"but it is only {length} samples long.")
+        raise RuntimeError(
+            f"Input should be at least as large as the kernel size {kernel_size}, "
+            f"but it is only {length} samples long."
+        )
     if block_ratio < 1:
         raise RuntimeError("Block ratio must be greater than 1.")
 
@@ -125,7 +136,7 @@ def fft_conv1d(
     out_z = _compl_mul_conjugate(frames_z, weight_z)
     out = _irfft(out_z, block_size)
     # The last bit is invalid, because FFT will do a circular convolution.
-    out = out[..., :-kernel_size + 1]
+    out = out[..., : -kernel_size + 1]
     out = out.reshape(batch, out_channels, -1)
     out = out[..., ::stride]
     target_length = (length - kernel_size) // stride + 1
@@ -162,8 +173,16 @@ class FFTConv1d(torch.nn.Module):
     >>> print(list(fftconv(x).shape))
     [4, 24, 225]
     """
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int,
-                 stride: int = 1, padding: int = 0, bias: bool = True):
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        padding: int = 0,
+        bias: bool = True,
+    ):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -176,8 +195,7 @@ class FFTConv1d(torch.nn.Module):
         self.bias = conv.bias
 
     def forward(self, input: torch.Tensor):
-        return fft_conv1d(
-            input, self.weight, self.bias, self.stride, self.padding)
+        return fft_conv1d(input, self.weight, self.bias, self.stride, self.padding)
 
     def __repr__(self):
         return simple_repr(self, overrides={"bias": self.bias is not None})

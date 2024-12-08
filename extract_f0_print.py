@@ -9,9 +9,12 @@ from LazyImport import lazyload
 from my_utils import load_audio
 import pyworld
 import numpy as np, logging
-torchcrepe = lazyload("torchcrepe")  # Fork Feature. Crepe algo for training and preprocess
+
+torchcrepe = lazyload(
+    "torchcrepe"
+)  # Fork Feature. Crepe algo for training and preprocess
 torch = lazyload("torch")
-#from torch import Tensor  # Fork Feature. Used for pitch prediction for torch crepe.
+# from torch import Tensor  # Fork Feature. Used for pitch prediction for torch crepe.
 tqdm = lazyload("tqdm")
 
 logging.getLogger("numba").setLevel(logging.WARNING)
@@ -24,6 +27,7 @@ f = open(f"{exp_dir}/extract_f0_feature.log", "a+")
 DoFormant = False
 Quefrency = 1.0
 Timbre = 1.0
+
 
 def printt(strr):
     print(strr)
@@ -61,11 +65,15 @@ class FeatureInput(object):
     def mncrepe(self, method, x, p_len, crepe_hop_length):
         f0 = None
         torch_device_index = 0
-        torch_device = torch.device(
-            f"cuda:{torch_device_index % torch.cuda.device_count()}"
-        ) if torch.cuda.is_available() \
-            else torch.device("mps") if torch.backends.mps.is_available() \
-            else torch.device("cpu")
+        torch_device = (
+            torch.device(f"cuda:{torch_device_index % torch.cuda.device_count()}")
+            if torch.cuda.is_available()
+            else (
+                torch.device("mps")
+                if torch.backends.mps.is_available()
+                else torch.device("cpu")
+            )
+        )
 
         audio = torch.from_numpy(x.astype(np.float32)).to(torch_device, copy=True)
         audio /= torch.quantile(torch.abs(audio), 0.999)
@@ -73,8 +81,8 @@ class FeatureInput(object):
         if audio.ndim == 2 and audio.shape[0] > 1:
             audio = torch.mean(audio, dim=0, keepdim=True).detach()
         audio = audio.detach()
-        
-        if method == 'mangio-crepe':
+
+        if method == "mangio-crepe":
             pitch: torch.Tensor = torchcrepe.predict(
                 audio,
                 self.fs,
@@ -96,8 +104,8 @@ class FeatureInput(object):
                 source,
             )
             f0 = np.nan_to_num(target)
-            
-        elif method == 'crepe':
+
+        elif method == "crepe":
             batch_size = 512
             audio = torch.tensor(np.copy(x))[None].float()
             f0, pd = torchcrepe.predict(
@@ -120,17 +128,26 @@ class FeatureInput(object):
         return f0
 
     def get_pm(self, x, p_len):
-        f0 = parselmouth.Sound(x, self.fs).to_pitch_ac(
-            time_step=160 / 16000,
-            voicing_threshold=0.6,
-            pitch_floor=self.f0_min,
-            pitch_ceiling=self.f0_max,
-        ).selected_array["frequency"]
-        
+        f0 = (
+            parselmouth.Sound(x, self.fs)
+            .to_pitch_ac(
+                time_step=160 / 16000,
+                voicing_threshold=0.6,
+                pitch_floor=self.f0_min,
+                pitch_ceiling=self.f0_max,
+            )
+            .selected_array["frequency"]
+        )
+
         return np.pad(
             f0,
-            [[max(0, (p_len - len(f0) + 1) // 2), max(0, p_len - len(f0) - (p_len - len(f0) + 1) // 2)]],
-            mode="constant"
+            [
+                [
+                    max(0, (p_len - len(f0) + 1) // 2),
+                    max(0, p_len - len(f0) - (p_len - len(f0) + 1) // 2),
+                ]
+            ],
+            mode="constant",
         )
 
     def get_harvest(self, x):
@@ -156,18 +173,21 @@ class FeatureInput(object):
     def get_rmvpe(self, x):
         if not hasattr(self, "model_rmvpe"):
             from rmvpe import RMVPE
-            self.model_rmvpe = RMVPE("rmvpe.pt", is_half=False, device="cuda:0",onnx=False)
+
+            self.model_rmvpe = RMVPE(
+                "rmvpe.pt", is_half=False, device="cuda:0", onnx=False
+            )
 
         return self.model_rmvpe.infer_from_audio(x, thred=0.03)
-    def get_rmvpe_dml(self, x):
-        ...
+
+    def get_rmvpe_dml(self, x): ...
 
     def get_f0_method_dict(self):
         return {
             "pm": self.get_pm,
             "harvest": self.get_harvest,
             "dio": self.get_dio,
-            "rmvpe": self.get_rmvpe
+            "rmvpe": self.get_rmvpe,
         }
 
     def get_f0_hybrid_computation(
@@ -186,13 +206,21 @@ class FeatureInput(object):
 
         for method in methods:
             if method in self.f0_method_dict:
-                f0 = self.f0_method_dict[method](x, p_len) if method == 'pm' else self.f0_method_dict[method](x)
+                f0 = (
+                    self.f0_method_dict[method](x, p_len)
+                    if method == "pm"
+                    else self.f0_method_dict[method](x)
+                )
                 f0_computation_stack.append(f0)
-            elif method == 'crepe' or method == 'mangio-crepe':
+            elif method == "crepe" or method == "mangio-crepe":
                 self.the_other_complex_function(x, method, crepe_hop_length)
 
-        if len(f0_computation_stack) != 0:        
-            f0_median_hybrid = np.nanmedian(f0_computation_stack, axis=0) if len(f0_computation_stack)>1 else f0_computation_stack[0]
+        if len(f0_computation_stack) != 0:
+            f0_median_hybrid = (
+                np.nanmedian(f0_computation_stack, axis=0)
+                if len(f0_computation_stack) > 1
+                else f0_computation_stack[0]
+            )
             return f0_median_hybrid
         else:
             raise ValueError("No valid methods were provided")
@@ -202,8 +230,12 @@ class FeatureInput(object):
         p_len = x.shape[0] // self.hop
 
         if f0_method in self.f0_method_dict:
-            f0 = self.f0_method_dict[f0_method](x, p_len) if f0_method == 'pm' else self.f0_method_dict[f0_method](x)
-        elif f0_method in ['crepe', 'mangio-crepe']:
+            f0 = (
+                self.f0_method_dict[f0_method](x, p_len)
+                if f0_method == "pm"
+                else self.f0_method_dict[f0_method](x)
+            )
+        elif f0_method in ["crepe", "mangio-crepe"]:
             f0 = self.mncrepe(f0_method, x, p_len, crepe_hop_length)
         elif "hybrid" in f0_method:  # EXPERIMENTAL
             # Perform hybrid median pitch estimation
@@ -240,12 +272,11 @@ class FeatureInput(object):
         with tqdm.tqdm(total=len(paths), leave=True, position=thread_n) as pbar:
             description = f"thread:{thread_n}, f0ing, Hop-Length:{crepe_hop_length}"
             pbar.set_description(description)
-                
+
             for idx, (inp_path, opt_path1, opt_path2) in enumerate(paths):
                 try:
-                    if (
-                        os.path.exists(opt_path1 + ".npy") 
-                        and os.path.exists(opt_path2 + ".npy")
+                    if os.path.exists(opt_path1 + ".npy") and os.path.exists(
+                        opt_path2 + ".npy"
                     ):
                         pbar.update(1)
                         continue

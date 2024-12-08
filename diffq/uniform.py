@@ -14,7 +14,7 @@ from .base import BaseQuantizer
 from .utils import simple_repr
 
 
-def uniform_quantize(p: torch.Tensor, bits: torch.Tensor = torch.tensor(8.)):
+def uniform_quantize(p: torch.Tensor, bits: torch.Tensor = torch.tensor(8.0)):
     """
     Quantize the given weights over `bits` bits.
 
@@ -37,8 +37,11 @@ def uniform_quantize(p: torch.Tensor, bits: torch.Tensor = torch.tensor(8.)):
     return levels, (mn, mx)
 
 
-def uniform_unquantize(levels: torch.Tensor, scales: Tuple[float, float],
-                       bits: torch.Tensor = torch.tensor(8.)):
+def uniform_unquantize(
+    levels: torch.Tensor,
+    scales: Tuple[float, float],
+    bits: torch.Tensor = torch.tensor(8.0),
+):
     """
     Unquantize the weights from the levels and scale. Return a float32 tensor.
     """
@@ -51,8 +54,16 @@ def uniform_unquantize(levels: torch.Tensor, scales: Tuple[float, float],
 
 
 class UniformQuantizer(BaseQuantizer):
-    def __init__(self, model: torch.nn.Module, bits: float = 8., min_size: float = 0.01,
-                 float16: bool = False, qat: bool = False, exclude=[], detect_bound=True):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        bits: float = 8.0,
+        min_size: float = 0.01,
+        float16: bool = False,
+        qat: bool = False,
+        exclude=[],
+        detect_bound=True,
+    ):
         """
         Args:
             model (torch.nn.Module): model to quantize
@@ -71,7 +82,9 @@ class UniformQuantizer(BaseQuantizer):
         super().__init__(model, min_size, float16, exclude, detect_bound)
 
     def __repr__(self):
-        return simple_repr(self, )
+        return simple_repr(
+            self,
+        )
 
     def _pre_forward_train(self):
         if self.qat:
@@ -109,7 +122,9 @@ class UniformQuantizer(BaseQuantizer):
         subtotal = 0
         for qparam in self._qparams:
             if qparam.other is None:  # if parameter is bound, count only one copy.
-                subtotal += self.bits * qparam.param.numel() + 64  # 2 float for the overall scales
+                subtotal += (
+                    self.bits * qparam.param.numel() + 64
+                )  # 2 float for the overall scales
         subtotal /= 2**20 * 8  # bits to MegaBytes
         return total + subtotal
 

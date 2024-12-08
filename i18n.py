@@ -1,5 +1,6 @@
 import json
 
+
 def load_language_list(language):
     try:
         with open(f"./i18n/{language}.json", "r", encoding="utf-8") as f:
@@ -20,8 +21,10 @@ class I18nAuto:
     >>> i18n.print()
     Using Language: en_US
     """
+
     def __init__(self, language=None):
         from locale import getdefaultlocale
+
         language = language or getdefaultlocale()[0]
         if not self._language_exists(language):
             language = "en_US"
@@ -32,6 +35,7 @@ class I18nAuto:
     @staticmethod
     def _language_exists(language):
         from os.path import exists
+
         return exists(f"./i18n/{language}.json")
 
     def __call__(self, key):
@@ -40,4 +44,4 @@ class I18nAuto:
 
     def print(self):
         """Prints the language currently in use."""
-        print(f"Using Language: {self.language}") 
+        print(f"Using Language: {self.language}")

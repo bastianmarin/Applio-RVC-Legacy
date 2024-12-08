@@ -8,12 +8,13 @@ import os
 global usefp16
 usefp16 = False
 
+
 def decide_fp_config():
     global usefp16
     usefp16 = False
     device_capability = 0
     if torch.cuda.is_available():
-        device = torch.device("cuda:0")  
+        device = torch.device("cuda:0")
         device_capability = torch.cuda.get_device_capability(device)[0]
         if device_capability >= 7:
             usefp16 = True
@@ -26,8 +27,6 @@ def decide_fp_config():
 
                 with open(f"configs/{config_file}", "w") as d:
                     json.dump(data, d, indent=4)
-
-
 
             with open(
                 "trainset_preprocess_pipeline_print.py", "r", encoding="utf-8"
@@ -70,6 +69,7 @@ def decide_fp_config():
         )
     return (usefp16, device_capability)
 
+
 class Config:
     def __init__(self):
         self.device = "cuda:0"
@@ -107,31 +107,29 @@ class Config:
             action="store_true",
             help="Do not open in browser automatically",
         )
-        parser.add_argument(  
+        parser.add_argument(
             "--paperspace",
             action="store_true",
             help="Note that this argument just shares a gradio link for the web UI. Thus can be used on other non-local CLI systems.",
         )
-        parser.add_argument(  
+        parser.add_argument(
             "--is_cli",
             action="store_true",
             help="Use the CLI instead of setting up a gradio UI. This flag will launch an RVC text interface where you can execute functions from infer-web.py!",
         )
 
         parser.add_argument(
-                    "-t",
-                    "--theme",
-            help    = "Theme for Gradio. Format - `JohnSmith9982/small_and_pretty` (no backticks)",
-            default = "JohnSmith9982/small_and_pretty",
-            type    = str
+            "-t",
+            "--theme",
+            help="Theme for Gradio. Format - `JohnSmith9982/small_and_pretty` (no backticks)",
+            default="JohnSmith9982/small_and_pretty",
+            type=str,
         )
 
         parser.add_argument(
-            "--dml",
-            action="store_true",
-            help="Use DirectML backend instead of CUDA."
+            "--dml", action="store_true", help="Use DirectML backend instead of CUDA."
         )
-        
+
         cmd_opts = parser.parse_args()
 
         cmd_opts.port = cmd_opts.port if 0 <= cmd_opts.port <= 65535 else 7865
@@ -216,15 +214,21 @@ class Config:
             x_query = 5
             x_center = 30
             x_max = 32
-        
+
         if self.dml:
             print("use DirectML instead")
             try:
-                os.rename("runtime\Lib\site-packages\onnxruntime","runtime\Lib\site-packages\onnxruntime-cuda")
+                os.rename(
+                    "runtime\Lib\site-packages\onnxruntime",
+                    "runtime\Lib\site-packages\onnxruntime-cuda",
+                )
             except:
                 pass
             try:
-                os.rename("runtime\Lib\site-packages\onnxruntime-dml","runtime\Lib\site-packages\onnxruntime")
+                os.rename(
+                    "runtime\Lib\site-packages\onnxruntime-dml",
+                    "runtime\Lib\site-packages\onnxruntime",
+                )
             except:
                 pass
             import torch_directml
@@ -236,11 +240,17 @@ class Config:
             if self.instead:
                 print(f"use {self.instead} instead")
             try:
-                os.rename("runtime\Lib\site-packages\onnxruntime","runtime\Lib\site-packages\onnxruntime-dml")
+                os.rename(
+                    "runtime\Lib\site-packages\onnxruntime",
+                    "runtime\Lib\site-packages\onnxruntime-dml",
+                )
             except:
                 pass
             try:
-                os.rename("runtime\Lib\site-packages\onnxruntime-cuda","runtime\Lib\site-packages\onnxruntime")
+                os.rename(
+                    "runtime\Lib\site-packages\onnxruntime-cuda",
+                    "runtime\Lib\site-packages\onnxruntime",
+                )
             except:
                 pass
 

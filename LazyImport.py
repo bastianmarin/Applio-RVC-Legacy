@@ -1,6 +1,7 @@
 from importlib.util import find_spec, LazyLoader, module_from_spec
 from sys import modules
 
+
 def lazyload(name):
     if name in modules:
         return modules[name]

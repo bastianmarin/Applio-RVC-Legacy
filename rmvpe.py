@@ -593,7 +593,7 @@ class RMVPE:
             mel = F.pad(
                 mel, (0, 32 * ((n_frames - 1) // 32 + 1) - n_frames), mode="reflect"
             )
-            #if "privateuseone" in str(self.device):
+            # if "privateuseone" in str(self.device):
             if self.onnx:
                 onnx_input_name = self.model.get_inputs()[0].name
                 onnx_outputs_names = self.model.get_outputs()[0].name
@@ -626,7 +626,8 @@ class RMVPE:
             # torch.cuda.synchronize()
             t0 = ttime()
             mel = self.mel_extractor(
-                torch.from_numpy(audio).float().to(self.device).unsqueeze(0), center=True
+                torch.from_numpy(audio).float().to(self.device).unsqueeze(0),
+                center=True,
             )
             # print(123123123,mel.device.type)
             # torch.cuda.synchronize()
@@ -646,7 +647,7 @@ class RMVPE:
             t3 = ttime()
             # print("hmvpe:%s\t%s\t%s\t%s"%(t1-t0,t2-t1,t3-t2,t3-t0))
             return f0
-    
+
     def infer_from_audio_with_pitch(self, audio, thred=0.03, f0_min=50, f0_max=1100):
         audio = torch.from_numpy(audio).float().to(self.device).unsqueeze(0)
         mel = self.mel_extractor(audio, center=True)
@@ -655,7 +656,7 @@ class RMVPE:
         if self.is_half == True:
             hidden = hidden.astype("float32")
         f0 = self.decode(hidden, thred=thred)
-        f0[(f0 < f0_min) | (f0 > f0_max)] = 0  
+        f0[(f0 < f0_min) | (f0 > f0_max)] = 0
         return f0
 
     def to_local_average_cents(self, salience, thred=0.05):

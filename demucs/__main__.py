@@ -25,8 +25,15 @@ from .pretrained import load_pretrained, SOURCES
 from .tasnet import ConvTasNet
 from .test import evaluate
 from .train import train_model, validate_model
-from .utils import (human_seconds, load_model, save_model, get_state,
-                    save_state, sizeof_fmt, get_quantizer)
+from .utils import (
+    human_seconds,
+    load_model,
+    save_model,
+    get_state,
+    save_state,
+    sizeof_fmt,
+    get_quantizer,
+)
 from .wav import get_wav_datasets, get_musdb_wav_datasets
 
 
@@ -48,7 +55,8 @@ def main():
         print(
             "You must provide the path to the MusDB dataset with the --musdb flag. "
             "To download the MusDB dataset, see https://sigsep.github.io/datasets/musdb.html.",
-            file=sys.stderr)
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     eval_folder = args.evals / name
@@ -74,13 +82,18 @@ def main():
 
     if args.world_size > 1:
         if device != "cuda" and args.rank == 0:
-            print("Error: distributed training is only available with cuda device", file=sys.stderr)
+            print(
+                "Error: distributed training is only available with cuda device",
+                file=sys.stderr,
+            )
             sys.exit(1)
         th.cuda.set_device(args.rank % th.cuda.device_count())
-        distributed.init_process_group(backend="nccl",
-                                       init_method="tcp://" + args.master,
-                                       rank=args.rank,
-                                       world_size=args.world_size)
+        distributed.init_process_group(
+            backend="nccl",
+            init_method="tcp://" + args.master,
+            rank=args.rank,
+            world_size=args.world_size,
+        )
 
     checkpoint = args.checkpoints / f"{name}.th"
     checkpoint_tmp = args.checkpoints / f"{name}.th.tmp"
@@ -95,10 +108,13 @@ def main():
         else:
             model = load_pretrained(args.test_pretrained)
     elif args.tasnet:
-        model = ConvTasNet(audio_channels=args.audio_channels,
-                           samplerate=args.samplerate, X=args.X,
-                           segment_length=4 * args.samples,
-                           sources=SOURCES)
+        model = ConvTasNet(
+            audio_channels=args.audio_channels,
+            samplerate=args.samplerate,
+            X=args.X,
+            segment_length=4 * args.samples,
+            sources=SOURCES,
+        )
     else:
         model = Demucs(
             audio_channels=args.audio_channels,
@@ -129,7 +145,7 @@ def main():
         return
 
     try:
-        saved = th.load(checkpoint, map_location='cpu')
+        saved = th.load(checkpoint, map_location="cpu")
     except IOError:
         saved = SavedState()
 
@@ -166,8 +182,12 @@ def main():
 
     augment = [Shift(args.data_stride)]
     if args.augment:
-        augment += [FlipSign(), FlipChannels(), Scale(),
-                    Remix(group_size=args.remix_group_size)]
+        augment += [
+            FlipSign(),
+            FlipChannels(),
+            Scale(),
+            Remix(group_size=args.remix_group_size),
+        ]
     augment = nn.Sequential(*augment).to(device)
     print("Agumentation pipeline:", augment)
 
@@ -189,11 +209,13 @@ def main():
 
     args.metadata.mkdir(exist_ok=True, parents=True)
     if args.raw:
-        train_set = Rawset(args.raw / "train",
-                           samples=samples,
-                           channels=args.audio_channels,
-                           streams=range(1, len(model.sources) + 1),
-                           stride=args.data_stride)
+        train_set = Rawset(
+            args.raw / "train",
+            samples=samples,
+            channels=args.audio_channels,
+            streams=range(1, len(model.sources) + 1),
+            stride=args.data_stride,
+        )
 
         valid_set = Rawset(args.raw / "valid", channels=args.audio_channels)
     elif args.wav:
@@ -205,25 +227,28 @@ def main():
 
     if args.repitch:
         train_set = RepitchedWrapper(
-            train_set,
-            proba=args.repitch,
-            max_tempo=args.max_tempo)
+            train_set, proba=args.repitch, max_tempo=args.max_tempo
+        )
 
     best_loss = float("inf")
     for epoch, metrics in enumerate(saved.metrics):
-        print(f"Epoch {epoch:03d}: "
-              f"train={metrics['train']:.8f} "
-              f"valid={metrics['valid']:.8f} "
-              f"best={metrics['best']:.4f} "
-              f"ms={metrics.get('true_model_size', 0):.2f}MB "
-              f"cms={metrics.get('compressed_model_size', 0):.2f}MB "
-              f"duration={human_seconds(metrics['duration'])}")
-        best_loss = metrics['best']
+        print(
+            f"Epoch {epoch:03d}: "
+            f"train={metrics['train']:.8f} "
+            f"valid={metrics['valid']:.8f} "
+            f"best={metrics['best']:.4f} "
+            f"ms={metrics.get('true_model_size', 0):.2f}MB "
+            f"cms={metrics.get('compressed_model_size', 0):.2f}MB "
+            f"duration={human_seconds(metrics['duration'])}"
+        )
+        best_loss = metrics["best"]
 
     if args.world_size > 1:
-        dmodel = DistributedDataParallel(model,
-                                         device_ids=[th.cuda.current_device()],
-                                         output_device=th.cuda.current_device())
+        dmodel = DistributedDataParallel(
+            model,
+            device_ids=[th.cuda.current_device()],
+            output_device=th.cuda.current_device(),
+        )
     else:
         dmodel = model
 
@@ -231,7 +256,12 @@ def main():
         begin = time.time()
         model.train()
         train_loss, model_size = train_model(
-            epoch, train_set, dmodel, criterion, optimizer, augment,
+            epoch,
+            train_set,
+            dmodel,
+            criterion,
+            optimizer,
+            augment,
             quantizer=quantizer,
             batch_size=args.batch_size,
             device=device,
@@ -239,21 +269,28 @@ def main():
             seed=args.seed,
             diffq=args.diffq,
             workers=args.workers,
-            world_size=args.world_size)
+            world_size=args.world_size,
+        )
         model.eval()
         valid_loss = validate_model(
-            epoch, valid_set, model, criterion,
+            epoch,
+            valid_set,
+            model,
+            criterion,
             device=device,
             rank=args.rank,
             split=args.split_valid,
             overlap=args.overlap,
-            world_size=args.world_size)
+            world_size=args.world_size,
+        )
 
         ms = 0
         cms = 0
         if quantizer and args.rank == 0:
             ms = quantizer.true_model_size()
-            cms = quantizer.compressed_model_size(num_workers=min(40, args.world_size * 10))
+            cms = quantizer.compressed_model_size(
+                num_workers=min(40, args.world_size * 10)
+            )
 
         duration = time.time() - begin
         if valid_loss < best_loss and ms <= args.ms_target:
@@ -263,15 +300,17 @@ def main():
                 for key, value in model.state_dict().items()
             }
 
-        saved.metrics.append({
-            "train": train_loss,
-            "valid": valid_loss,
-            "best": best_loss,
-            "duration": duration,
-            "model_size": model_size,
-            "true_model_size": ms,
-            "compressed_model_size": cms,
-        })
+        saved.metrics.append(
+            {
+                "train": train_loss,
+                "valid": valid_loss,
+                "best": best_loss,
+                "duration": duration,
+                "model_size": model_size,
+                "true_model_size": ms,
+                "compressed_model_size": cms,
+            }
+        )
         if args.rank == 0:
             json.dump(saved.metrics, open(metrics_path, "w"))
 
@@ -281,10 +320,12 @@ def main():
             th.save(saved, checkpoint_tmp)
             checkpoint_tmp.rename(checkpoint)
 
-        print(f"Epoch {epoch:03d}: "
-              f"train={train_loss:.8f} valid={valid_loss:.8f} best={best_loss:.4f} ms={ms:.2f}MB "
-              f"cms={cms:.2f}MB "
-              f"duration={human_seconds(duration)}")
+        print(
+            f"Epoch {epoch:03d}: "
+            f"train={train_loss:.8f} valid={valid_loss:.8f} best={best_loss:.4f} ms={ms:.2f}MB "
+            f"cms={cms:.2f}MB "
+            f"duration={human_seconds(duration)}"
+        )
 
     if args.world_size > 1:
         distributed.barrier()
@@ -295,16 +336,20 @@ def main():
         device = "cpu"
         model.to(device)
     model.eval()
-    evaluate(model, args.musdb, eval_folder,
-             is_wav=args.is_wav,
-             rank=args.rank,
-             world_size=args.world_size,
-             device=device,
-             save=args.save,
-             split=args.split_valid,
-             shifts=args.shifts,
-             overlap=args.overlap,
-             workers=args.eval_workers)
+    evaluate(
+        model,
+        args.musdb,
+        eval_folder,
+        is_wav=args.is_wav,
+        rank=args.rank,
+        world_size=args.world_size,
+        device=device,
+        save=args.save,
+        split=args.split_valid,
+        shifts=args.shifts,
+        overlap=args.overlap,
+        workers=args.eval_workers,
+    )
     model.to("cpu")
     if args.rank == 0:
         if not (args.test or args.test_pretrained):

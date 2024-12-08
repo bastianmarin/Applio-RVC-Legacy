@@ -21,7 +21,9 @@ sys.path.append(now_dir)
 
 from LazyImport import lazyload
 
-torchcrepe = lazyload("torchcrepe")  # Fork Feature. Crepe algo for training and preprocess
+torchcrepe = lazyload(
+    "torchcrepe"
+)  # Fork Feature. Crepe algo for training and preprocess
 torch = lazyload("torch")
 rmvpe = lazyload("rmvpe")
 
@@ -75,7 +77,7 @@ class VC(object):
             config.x_max,
             config.is_half,
         )
-        
+
         self.sr = 16000  # hubert输入采样率
         self.window = 160  # 每帧点数
         self.t_pad = self.sr * self.x_pad  # 每条前后pad时间
@@ -85,7 +87,9 @@ class VC(object):
         self.t_center = self.sr * self.x_center  # 查询切点位置
         self.t_max = self.sr * self.x_max  # 免查询时长阈值
         self.device = config.device
-        self.model_rmvpe = rmvpe.RMVPE("rmvpe.pt", is_half=self.is_half, device=self.device, onnx=False)
+        self.model_rmvpe = rmvpe.RMVPE(
+            "rmvpe.pt", is_half=self.is_half, device=self.device, onnx=False
+        )
         self.f0_method_dict = {
             "pm": self.get_pm,
             "harvest": self.get_harvest,
@@ -94,24 +98,85 @@ class VC(object):
             "rmvpe_onnx": self.get_rmvpe,
             "rmvpe+": self.get_pitch_dependant_rmvpe,
             "crepe": self.get_f0_official_crepe_computation,
-            "crepe-tiny": partial(self.get_f0_official_crepe_computation, model='model'),
+            "crepe-tiny": partial(
+                self.get_f0_official_crepe_computation, model="model"
+            ),
             "mangio-crepe": self.get_f0_crepe_computation,
-            "mangio-crepe-tiny": partial(self.get_f0_crepe_computation, model='model'),
-            
+            "mangio-crepe-tiny": partial(self.get_f0_crepe_computation, model="model"),
         }
         self.note_dict = [
-            65.41, 69.30, 73.42, 77.78, 82.41, 87.31,
-            92.50, 98.00, 103.83, 110.00, 116.54, 123.47,
-            130.81, 138.59, 146.83, 155.56, 164.81, 174.61,
-            185.00, 196.00, 207.65, 220.00, 233.08, 246.94,
-            261.63, 277.18, 293.66, 311.13, 329.63, 349.23,
-            369.99, 392.00, 415.30, 440.00, 466.16, 493.88,
-            523.25, 554.37, 587.33, 622.25, 659.25, 698.46,
-            739.99, 783.99, 830.61, 880.00, 932.33, 987.77,
-            1046.50, 1108.73, 1174.66, 1244.51, 1318.51, 1396.91,
-            1479.98, 1567.98, 1661.22, 1760.00, 1864.66, 1975.53,
-            2093.00, 2217.46, 2349.32, 2489.02, 2637.02, 2793.83,
-            2959.96, 3135.96, 3322.44, 3520.00, 3729.31, 3951.07
+            65.41,
+            69.30,
+            73.42,
+            77.78,
+            82.41,
+            87.31,
+            92.50,
+            98.00,
+            103.83,
+            110.00,
+            116.54,
+            123.47,
+            130.81,
+            138.59,
+            146.83,
+            155.56,
+            164.81,
+            174.61,
+            185.00,
+            196.00,
+            207.65,
+            220.00,
+            233.08,
+            246.94,
+            261.63,
+            277.18,
+            293.66,
+            311.13,
+            329.63,
+            349.23,
+            369.99,
+            392.00,
+            415.30,
+            440.00,
+            466.16,
+            493.88,
+            523.25,
+            554.37,
+            587.33,
+            622.25,
+            659.25,
+            698.46,
+            739.99,
+            783.99,
+            830.61,
+            880.00,
+            932.33,
+            987.77,
+            1046.50,
+            1108.73,
+            1174.66,
+            1244.51,
+            1318.51,
+            1396.91,
+            1479.98,
+            1567.98,
+            1661.22,
+            1760.00,
+            1864.66,
+            1975.53,
+            2093.00,
+            2217.46,
+            2349.32,
+            2489.02,
+            2637.02,
+            2793.83,
+            2959.96,
+            3135.96,
+            3322.44,
+            3520.00,
+            3729.31,
+            3951.07,
         ]
         self.onnx = False
 
@@ -145,8 +210,8 @@ class VC(object):
         if audio.ndim == 2 and audio.shape[0] > 1:
             audio = torch.mean(audio, dim=0, keepdim=True).detach()
         audio = audio.detach()
-        hop_length = kwargs.get('crepe_hop_length', 160)
-        model = kwargs.get('model', 'full') 
+        hop_length = kwargs.get("crepe_hop_length", 160)
+        model = kwargs.get("model", "full")
         print("Initiating prediction with a crepe_hop_length of: " + str(hop_length))
         pitch: Tensor = torchcrepe.predict(
             audio,
@@ -170,20 +235,13 @@ class VC(object):
         )
         f0 = np.nan_to_num(target)
         return f0  # Resized f0
-    
-    def get_f0_official_crepe_computation(
-        self,
-        x,
-        f0_min,
-        f0_max,
-        *args,
-        **kwargs
-    ):
+
+    def get_f0_official_crepe_computation(self, x, f0_min, f0_max, *args, **kwargs):
         # Pick a batch size that doesn't cause memory errors on your gpu
         batch_size = 512
         # Compute pitch using first gpu
         audio = torch.tensor(np.copy(x))[None].float()
-        model = kwargs.get('model', 'full') 
+        model = kwargs.get("model", "full")
         f0, pd = torchcrepe.predict(
             audio,
             self.sr,
@@ -209,26 +267,35 @@ class VC(object):
         return f0
 
     def get_pm(self, x, p_len, *args, **kwargs):
-        f0 = parselmouth.Sound(x, self.sr).to_pitch_ac(
-            time_step=160 / 16000,
-            voicing_threshold=0.6,
-            pitch_floor=kwargs.get('f0_min'),
-            pitch_ceiling=kwargs.get('f0_max'),
-        ).selected_array["frequency"]
-        
+        f0 = (
+            parselmouth.Sound(x, self.sr)
+            .to_pitch_ac(
+                time_step=160 / 16000,
+                voicing_threshold=0.6,
+                pitch_floor=kwargs.get("f0_min"),
+                pitch_ceiling=kwargs.get("f0_max"),
+            )
+            .selected_array["frequency"]
+        )
+
         return np.pad(
             f0,
-            [[max(0, (p_len - len(f0) + 1) // 2), max(0, p_len - len(f0) - (p_len - len(f0) + 1) // 2)]],
-            mode="constant"
+            [
+                [
+                    max(0, (p_len - len(f0) + 1) // 2),
+                    max(0, p_len - len(f0) - (p_len - len(f0) + 1) // 2),
+                ]
+            ],
+            mode="constant",
         )
 
     def get_harvest(self, x, *args, **kwargs):
         f0_spectral = pyworld.harvest(
             x.astype(np.double),
             fs=self.sr,
-            f0_ceil=kwargs.get('f0_max'),
-            f0_floor=kwargs.get('f0_min'),
-            frame_period=1000 * kwargs.get('hop_length', 160) / self.sr,
+            f0_ceil=kwargs.get("f0_max"),
+            f0_floor=kwargs.get("f0_min"),
+            frame_period=1000 * kwargs.get("hop_length", 160) / self.sr,
         )
         return pyworld.stonemask(x.astype(np.double), *f0_spectral, self.sr)
 
@@ -236,34 +303,40 @@ class VC(object):
         f0_spectral = pyworld.dio(
             x.astype(np.double),
             fs=self.sr,
-            f0_ceil=kwargs.get('f0_max'),
-            f0_floor=kwargs.get('f0_min'),
-            frame_period=1000 * kwargs.get('hop_length', 160) / self.sr,
+            f0_ceil=kwargs.get("f0_max"),
+            f0_floor=kwargs.get("f0_min"),
+            frame_period=1000 * kwargs.get("hop_length", 160) / self.sr,
         )
         return pyworld.stonemask(x.astype(np.double), *f0_spectral, self.sr)
 
-
     def get_rmvpe(self, x, *args, **kwargs):
-        if self.onnx == False: 
+        if self.onnx == False:
             return self.model_rmvpe.infer_from_audio(x, thred=0.03)
         else:
 
-            self.model_rmvpe = rmvpe.RMVPE("rmvpe.pt", is_half=self.is_half, device=self.device, onnx=self.onnx)
+            self.model_rmvpe = rmvpe.RMVPE(
+                "rmvpe.pt", is_half=self.is_half, device=self.device, onnx=self.onnx
+            )
             f0 = self.model_rmvpe.infer_from_audio(x, thred=0.03)
             if "privateuseone" in str(self.device):
-                    del self.model_rmvpe.model
-                    del self.model_rmvpe
-                    print("cleaning ortruntime memory")
+                del self.model_rmvpe.model
+                del self.model_rmvpe
+                print("cleaning ortruntime memory")
             return f0
-    
 
     def get_pitch_dependant_rmvpe(self, x, f0_min=1, f0_max=40000, *args, **kwargs):
-        return self.model_rmvpe.infer_from_audio_with_pitch(x, thred=0.03, f0_min=f0_min, f0_max=f0_max)
+        return self.model_rmvpe.infer_from_audio_with_pitch(
+            x, thred=0.03, f0_min=f0_min, f0_max=f0_max
+        )
 
     def autotune_f0(self, f0):
         autotuned_f0 = []
         for freq in f0:
-            closest_notes = [x for x in self.note_dict if abs(x - freq) == min(abs(n - freq) for n in self.note_dict)]
+            closest_notes = [
+                x
+                for x in self.note_dict
+                if abs(x - freq) == min(abs(n - freq) for n in self.note_dict)
+            ]
             autotuned_f0.append(random.choice(closest_notes))
         return np.array(autotuned_f0, np.float64)
 
@@ -278,16 +351,22 @@ class VC(object):
         p_len,
         filter_radius,
         crepe_hop_length,
-        time_step
+        time_step,
     ):
         # Get various f0 methods from input to use in the computation stack
-        params = {'x': x, 'p_len': p_len, 'f0_min': f0_min, 
-          'f0_max': f0_max, 'time_step': time_step, 'filter_radius': filter_radius, 
-          'crepe_hop_length': crepe_hop_length, 'model': "full"
+        params = {
+            "x": x,
+            "p_len": p_len,
+            "f0_min": f0_min,
+            "f0_max": f0_max,
+            "time_step": time_step,
+            "filter_radius": filter_radius,
+            "crepe_hop_length": crepe_hop_length,
+            "model": "full",
         }
-        methods_str = re.search('hybrid\[(.+)\]', methods_str)
+        methods_str = re.search("hybrid\[(.+)\]", methods_str)
         if methods_str:  # Ensure a match was found
-            methods = [method.strip() for method in methods_str.group(1).split('+')]
+            methods = [method.strip() for method in methods_str.group(1).split("+")]
         f0_computation_stack = []
 
         print(f"Calculating f0 pitch estimations for methods: {str(methods)}")
@@ -300,7 +379,7 @@ class VC(object):
                 print(f"Method {method} not found.")
                 continue
             f0 = self.f0_method_dict[method](**params)
-            if method == 'harvest' and filter_radius > 2:
+            if method == "harvest" and filter_radius > 2:
                 f0 = signal.medfilt(f0, 3)
                 f0 = f0[1:]  # Get rid of first frame.
             f0_computation_stack.append(f0)
@@ -331,17 +410,25 @@ class VC(object):
         time_step = self.window / self.sr * 1000
         f0_mel_min = 1127 * np.log(1 + f0_min / 700)
         f0_mel_max = 1127 * np.log(1 + f0_max / 700)
-        params = {'x': x, 'p_len': p_len, 'f0_up_key': f0_up_key, 'f0_min': f0_min, 
-          'f0_max': f0_max, 'time_step': time_step, 'filter_radius': filter_radius, 
-          'crepe_hop_length': crepe_hop_length, 'model': "full", 'onnx': rmvpe_onnx
+        params = {
+            "x": x,
+            "p_len": p_len,
+            "f0_up_key": f0_up_key,
+            "f0_min": f0_min,
+            "f0_max": f0_max,
+            "time_step": time_step,
+            "filter_radius": filter_radius,
+            "crepe_hop_length": crepe_hop_length,
+            "model": "full",
+            "onnx": rmvpe_onnx,
         }
 
         if "hybrid" in f0_method:
             # Perform hybrid median pitch estimation
             input_audio_path2wav[input_audio_path] = x.astype(np.double)
             f0 = self.get_f0_hybrid_computation(
-                f0_method,+
-                input_audio_path,
+                f0_method,
+                +input_audio_path,
                 x,
                 f0_min,
                 f0_max,
@@ -370,7 +457,7 @@ class VC(object):
             f0[self.x_pad * tf0 : self.x_pad * tf0 + len(replace_f0)] = replace_f0[
                 :shape
             ]
-        
+
         f0bak = f0.copy()
         f0_mel = 1127 * np.log(1 + f0 / 700)
         f0_mel[f0_mel > 0] = (f0_mel[f0_mel > 0] - f0_mel_min) * 254 / (
@@ -484,7 +571,26 @@ class VC(object):
         times[2] += t2 - t1
         return audio1
 
-    def process_t(self, t, s, window, audio_pad, pitch, pitchf, times, index, big_npy, index_rate, version, protect, t_pad_tgt, if_f0, sid, model, net_g):
+    def process_t(
+        self,
+        t,
+        s,
+        window,
+        audio_pad,
+        pitch,
+        pitchf,
+        times,
+        index,
+        big_npy,
+        index_rate,
+        version,
+        protect,
+        t_pad_tgt,
+        if_f0,
+        sid,
+        model,
+        net_g,
+    ):
         t = t // window * window
         if if_f0 == 1:
             return self.vc(
@@ -500,7 +606,7 @@ class VC(object):
                 index_rate,
                 version,
                 protect,
-            )[t_pad_tgt : -t_pad_tgt]
+            )[t_pad_tgt:-t_pad_tgt]
         else:
             return self.vc(
                 model,
@@ -515,12 +621,35 @@ class VC(object):
                 index_rate,
                 version,
                 protect,
-            )[t_pad_tgt : -t_pad_tgt]
+            )[t_pad_tgt:-t_pad_tgt]
 
-    def pipeline(self, model, net_g, sid, audio, input_audio_path, times, f0_up_key, f0_method,
-            file_index, index_rate, if_f0, filter_radius, tgt_sr, resample_sr, rms_mix_rate,
-            version, protect, crepe_hop_length, f0_autotune, rmvpe_onnx, f0_file=None, f0_min=50, f0_max=1100):
-        
+    def pipeline(
+        self,
+        model,
+        net_g,
+        sid,
+        audio,
+        input_audio_path,
+        times,
+        f0_up_key,
+        f0_method,
+        file_index,
+        index_rate,
+        if_f0,
+        filter_radius,
+        tgt_sr,
+        resample_sr,
+        rms_mix_rate,
+        version,
+        protect,
+        crepe_hop_length,
+        f0_autotune,
+        rmvpe_onnx,
+        f0_file=None,
+        f0_min=50,
+        f0_max=1100,
+    ):
+
         try:
             if file_index == "":
                 print("File index was empty.")
@@ -531,7 +660,9 @@ class VC(object):
                     sys.stdout.write(f"Attempting to load {file_index}....\n")
                     sys.stdout.flush()
                 else:
-                    sys.stdout.write(f"Attempting to load {file_index}.... (despite it not existing)\n")
+                    sys.stdout.write(
+                        f"Attempting to load {file_index}.... (despite it not existing)\n"
+                    )
                     sys.stdout.flush()
                 index = faiss.read_index(file_index)
                 big_npy = index.reconstruct_n(0, index.ntotal)
@@ -543,16 +674,20 @@ class VC(object):
         audio = signal.filtfilt(bh, ah, audio)
         audio_pad = np.pad(audio, (self.window // 2, self.window // 2), mode="reflect")
         opt_ts = []
-        
+
         if audio_pad.shape[0] > self.t_max:
             audio_sum = np.zeros_like(audio)
             for i in range(self.window):
                 audio_sum += audio_pad[i : i - self.window]
-            
+
             for t in range(self.t_center, audio.shape[0], self.t_center):
                 abs_audio_sum = np.abs(audio_sum[t - self.t_query : t + self.t_query])
                 min_abs_audio_sum = abs_audio_sum.min()
-                opt_ts.append(t - self.t_query + np.where(abs_audio_sum == min_abs_audio_sum)[0][0])
+                opt_ts.append(
+                    t
+                    - self.t_query
+                    + np.where(abs_audio_sum == min_abs_audio_sum)[0][0]
+                )
 
         s = 0
         audio_opt = []
@@ -565,7 +700,13 @@ class VC(object):
         if f0_file is not None:
             try:
                 with open(f0_file.name, "r") as f:
-                    inp_f0 = np.array([list(map(float, line.split(","))) for line in f.read().strip("\n").split("\n")], dtype="float32")
+                    inp_f0 = np.array(
+                        [
+                            list(map(float, line.split(",")))
+                            for line in f.read().strip("\n").split("\n")
+                        ],
+                        dtype="float32",
+                    )
             except:
                 traceback.print_exc()
 
@@ -574,10 +715,23 @@ class VC(object):
 
         if if_f0:
             pitch, pitchf = self.get_f0(
-                input_audio_path, audio_pad, p_len, f0_up_key, f0_method,
-                filter_radius, crepe_hop_length, f0_autotune, rmvpe_onnx, inp_f0, f0_min, f0_max)
-            
-            pitch = pitch[:p_len].astype(np.int64 if self.device != 'mps' else np.float32)
+                input_audio_path,
+                audio_pad,
+                p_len,
+                f0_up_key,
+                f0_method,
+                filter_radius,
+                crepe_hop_length,
+                f0_autotune,
+                rmvpe_onnx,
+                inp_f0,
+                f0_min,
+                f0_max,
+            )
+
+            pitch = pitch[:p_len].astype(
+                np.int64 if self.device != "mps" else np.float32
+            )
             pitchf = pitchf[:p_len].astype(np.float32)
             pitch = torch.from_numpy(pitch).to(self.device).unsqueeze(0)
             pitchf = torch.from_numpy(pitchf).to(self.device).unsqueeze(0)
@@ -591,23 +745,65 @@ class VC(object):
                 start = s
                 end = t + self.t_pad2 + self.window
                 audio_slice = audio_pad[start:end]
-                pitch_slice = pitch[:, start // self.window:end // self.window] if if_f0 else None
-                pitchf_slice = pitchf[:, start // self.window:end // self.window] if if_f0 else None
-                audio_opt.append(self.vc(model, net_g, sid, audio_slice, pitch_slice, pitchf_slice, times, index, big_npy, index_rate, version, protect)[self.t_pad_tgt : -self.t_pad_tgt])
+                pitch_slice = (
+                    pitch[:, start // self.window : end // self.window]
+                    if if_f0
+                    else None
+                )
+                pitchf_slice = (
+                    pitchf[:, start // self.window : end // self.window]
+                    if if_f0
+                    else None
+                )
+                audio_opt.append(
+                    self.vc(
+                        model,
+                        net_g,
+                        sid,
+                        audio_slice,
+                        pitch_slice,
+                        pitchf_slice,
+                        times,
+                        index,
+                        big_npy,
+                        index_rate,
+                        version,
+                        protect,
+                    )[self.t_pad_tgt : -self.t_pad_tgt]
+                )
                 s = t
                 pbar.update(1)
                 pbar.refresh()
 
         audio_slice = audio_pad[t:]
-        pitch_slice = pitch[:, t // self.window:] if if_f0 and t is not None else pitch
-        pitchf_slice = pitchf[:, t // self.window:] if if_f0 and t is not None else pitchf
-        audio_opt.append(self.vc(model, net_g, sid, audio_slice, pitch_slice, pitchf_slice, times, index, big_npy, index_rate, version, protect)[self.t_pad_tgt : -self.t_pad_tgt])
-        
+        pitch_slice = pitch[:, t // self.window :] if if_f0 and t is not None else pitch
+        pitchf_slice = (
+            pitchf[:, t // self.window :] if if_f0 and t is not None else pitchf
+        )
+        audio_opt.append(
+            self.vc(
+                model,
+                net_g,
+                sid,
+                audio_slice,
+                pitch_slice,
+                pitchf_slice,
+                times,
+                index,
+                big_npy,
+                index_rate,
+                version,
+                protect,
+            )[self.t_pad_tgt : -self.t_pad_tgt]
+        )
+
         audio_opt = np.concatenate(audio_opt)
         if rms_mix_rate != 1:
             audio_opt = change_rms(audio, 16000, audio_opt, tgt_sr, rms_mix_rate)
         if resample_sr >= 16000 and tgt_sr != resample_sr:
-            audio_opt = librosa.resample(audio_opt, orig_sr=tgt_sr, target_sr=resample_sr)
+            audio_opt = librosa.resample(
+                audio_opt, orig_sr=tgt_sr, target_sr=resample_sr
+            )
 
         max_int16 = 32768
         audio_max = max(np.abs(audio_opt).max() / 0.99, 1)
@@ -618,5 +814,5 @@ class VC(object):
 
         print("Returning completed audio...")
         print("-------------------")
-        
+
         return audio_opt

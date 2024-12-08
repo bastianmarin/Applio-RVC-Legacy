@@ -276,8 +276,12 @@ if __name__ == "__main__":
                                 ),
                             ],
                             [
-                                sg.Checkbox(i18n("Input noise reduction"), key="I_noise_reduce"),
-                                sg.Checkbox(i18n("Output noise reduction"), key="O_noise_reduce"),
+                                sg.Checkbox(
+                                    i18n("Input noise reduction"), key="I_noise_reduce"
+                                ),
+                                sg.Checkbox(
+                                    i18n("Output noise reduction"), key="O_noise_reduce"
+                                ),
                             ],
                         ],
                         title=i18n("Performance settings"),
@@ -341,7 +345,9 @@ if __name__ == "__main__":
                 sg.popup(i18n("The pth file path must not contain Chinese characters."))
                 return False
             if pattern.findall(values["index_path"]):
-                sg.popup(i18n("The index file path must not contain Chinese characters."))
+                sg.popup(
+                    i18n("The index file path must not contain Chinese characters.")
+                )
                 return False
             self.set_devices(values["sg_input_device"], values["sg_output_device"])
             self.config.pth_path = values["pth_path"]

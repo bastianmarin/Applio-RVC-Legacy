@@ -17,7 +17,7 @@ from scipy.io import wavfile
 def i16_pcm(wav):
     if wav.dtype == np.int16:
         return wav
-    return (wav * 2**15).clamp_(-2**15, 2**15 - 1).short()
+    return (wav * 2**15).clamp_(-(2**15), 2**15 - 1).short()
 
 
 def f32_pcm(wav):
@@ -30,7 +30,10 @@ class RepitchedWrapper:
     """
     Wrap a dataset to apply online change of pitch / tempo.
     """
-    def __init__(self, dataset, proba=0.2, max_pitch=2, max_tempo=12, tempo_std=5, vocals=[3]):
+
+    def __init__(
+        self, dataset, proba=0.2, max_pitch=2, max_tempo=12, tempo_std=5, vocals=[3]
+    ):
         self.dataset = dataset
         self.proba = proba
         self.max_pitch = max_pitch
@@ -53,10 +56,8 @@ class RepitchedWrapper:
             outs = []
             for idx, stream in enumerate(streams):
                 stream = repitch(
-                    stream,
-                    delta_pitch,
-                    delta_tempo,
-                    voice=idx in self.vocals)
+                    stream, delta_pitch, delta_tempo, voice=idx in self.vocals
+                )
                 outs.append(stream[:, :out_length])
             streams = torch.stack(outs)
         else:
@@ -88,7 +89,9 @@ def repitch(wav, pitch, tempo, voice=False, quick=False, samplerate=44100):
     try:
         sp.run(command, capture_output=True, input=in_.getvalue(), check=True)
     except sp.CalledProcessError as error:
-        raise RuntimeError(f"Could not change bpm because {error.stderr.decode('utf-8')}")
+        raise RuntimeError(
+            f"Could not change bpm because {error.stderr.decode('utf-8')}"
+        )
     sr, wav = wavfile.read(outfile.name)
     wav = wav.copy()
     wav = f32_pcm(torch.from_numpy(wav).t())

@@ -1,8 +1,9 @@
 import os, sys, traceback
 import tqdm
+
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # device=sys.argv[1]
 n_part = int(sys.argv[2])
 i_part = int(sys.argv[3])
@@ -100,16 +101,20 @@ else:
                     feats = readwave(wav_path, normalize=saved_cfg.task.normalize)
                     padding_mask = torch.BoolTensor(feats.shape).fill_(False)
                     inputs = {
-                        "source": feats.half().to(device)
-                        if device not in ["mps", "cpu"]
-                        else feats.to(device),
+                        "source": (
+                            feats.half().to(device)
+                            if device not in ["mps", "cpu"]
+                            else feats.to(device)
+                        ),
                         "padding_mask": padding_mask.to(device),
                         "output_layer": 9 if version == "v1" else 12,  # layer 9
                     }
                     with torch.no_grad():
                         logits = model.extract_features(**inputs)
                         feats = (
-                            model.final_proj(logits[0]) if version == "v1" else logits[0]
+                            model.final_proj(logits[0])
+                            if version == "v1"
+                            else logits[0]
                         )
 
                     feats = feats.squeeze(0).float().cpu().numpy()

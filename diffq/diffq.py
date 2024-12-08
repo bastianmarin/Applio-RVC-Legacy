@@ -23,11 +23,22 @@ class DiffQuantizer(BaseQuantizer):
     class _QuantizedParam(BaseQuantizer._QuantizedParam):
         logit: torch.nn.Parameter
 
-    def __init__(self, model: torch.nn.Module, min_size: float = 0.01, float16: bool = False,
-                 group_size: int = 1, min_bits: float = 2, max_bits: float = 15,
-                 param="bits", noise="gaussian",
-                 init_bits: float = 8, extra_bits: float = 0, suffix: str = "_diffq",
-                 exclude: tp.List[str] = [], detect_bound: bool = True):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        min_size: float = 0.01,
+        float16: bool = False,
+        group_size: int = 1,
+        min_bits: float = 2,
+        max_bits: float = 15,
+        param="bits",
+        noise="gaussian",
+        init_bits: float = 8,
+        extra_bits: float = 0,
+        suffix: str = "_diffq",
+        exclude: tp.List[str] = [],
+        detect_bound: bool = True,
+    ):
         """
         Differentiable quantizer based on scaled noise injection.
         For every parameter `p` in the model, this introduces a number of bits parameter
@@ -81,17 +92,20 @@ class DiffQuantizer(BaseQuantizer):
         assert noise in ["gaussian", "uniform"]
         self._optimizer_setup = False
 
-        self._min_noise = 1 / (2 ** self.max_bits - 1)
-        self._max_noise = 1 / (2 ** self.min_bits - 1)
+        self._min_noise = 1 / (2**self.max_bits - 1)
+        self._max_noise = 1 / (2**self.min_bits - 1)
 
         assert group_size >= 0
-        assert min_bits < init_bits < max_bits, \
-               "init_bits must be between min_bits and max_bits excluded3"
+        assert (
+            min_bits < init_bits < max_bits
+        ), "init_bits must be between min_bits and max_bits excluded3"
 
         for name, _ in model.named_parameters():
             if name.endswith(suffix):
-                raise RuntimeError("The model already has some noise scales parameters, "
-                                   "maybe you used twice a DiffQuantizer on the same model?.")
+                raise RuntimeError(
+                    "The model already has some noise scales parameters, "
+                    "maybe you used twice a DiffQuantizer on the same model?."
+                )
 
         super().__init__(model, min_size, float16, exclude, detect_bound)
 
@@ -105,20 +119,24 @@ class DiffQuantizer(BaseQuantizer):
     def _get_noise_scale(self, logit: torch.Tensor):
         if self.param == "noise":
             t = torch.sigmoid(logit)
-            return torch.exp(t * math.log(self._min_noise) + (1 - t) * math.log(self._max_noise))
+            return torch.exp(
+                t * math.log(self._min_noise) + (1 - t) * math.log(self._max_noise)
+            )
         else:
             return 1 / (2 ** self._get_bits(logit) - 1)
 
     def _register_param(self, name, param, module, other):
         if other is not None:
             return self.__class__._QuantizedParam(
-               name=name, param=param, module=module, logit=other.logit, other=other)
+                name=name, param=param, module=module, logit=other.logit, other=other
+            )
         assert self.group_size == 0 or param.numel() % self.group_size == 0
         # we want the initial number of bits to be init_bits.
         if self.param == "noise":
-            noise_scale = 1 / (2 ** self.init_bits - 1)
+            noise_scale = 1 / (2**self.init_bits - 1)
             t = (math.log(noise_scale) - math.log(self._max_noise)) / (
-                math.log(self._min_noise) - math.log(self._max_noise))
+                math.log(self._min_noise) - math.log(self._max_noise)
+            )
         else:
             t = (self.init_bits - self.min_bits) / (self.max_bits - self.min_bits)
         assert 0 < t < 1
@@ -128,14 +146,11 @@ class DiffQuantizer(BaseQuantizer):
             nparam = param.numel() // self.group_size
         else:
             nparam = 1
-        logit = torch.nn.Parameter(
-            torch.full(
-                (nparam,),
-                logit,
-                device=param.device))
+        logit = torch.nn.Parameter(torch.full((nparam,), logit, device=param.device))
         module.register_parameter(name + self.suffix, logit)
         return self.__class__._QuantizedParam(
-           name=name, param=param, module=module, logit=logit, other=None)
+            name=name, param=param, module=module, logit=logit, other=None
+        )
 
     def clear_optimizer(self, optimizer: torch.optim.Optimizer):
         params = [qp.logit for qp in self._qparams]
@@ -151,8 +166,9 @@ class DiffQuantizer(BaseQuantizer):
                     new_params.append(q)
             group["params"][:] = new_params
 
-    def setup_optimizer(self, optimizer: torch.optim.Optimizer,
-                        lr: float = 1e-3, **kwargs):
+    def setup_optimizer(
+        self, optimizer: torch.optim.Optimizer, lr: float = 1e-3, **kwargs
+    ):
         """
         Setup the optimizer to tune the number of bits. In particular, this will deactivate
         weight decay for the bits parameters.
@@ -172,8 +188,9 @@ class DiffQuantizer(BaseQuantizer):
             for q in list(group["params"]):
                 for p in params:
                     if p is q:
-                        raise RuntimeError("You should create the optimizer "
-                                           "before the quantizer!")
+                        raise RuntimeError(
+                            "You should create the optimizer " "before the quantizer!"
+                        )
 
         group = {"params": params, "lr": lr, "weight_decay": 0}
         group.update(kwargs)
@@ -220,11 +237,13 @@ class DiffQuantizer(BaseQuantizer):
             subtotal += 2 * 32  # param scale
 
             # Number of bits to represent each number of bits
-            bits_bits = math.ceil(math.log2(1 + (bits.max().round().item() - self.min_bits)))
+            bits_bits = math.ceil(
+                math.log2(1 + (bits.max().round().item() - self.min_bits))
+            )
             subtotal += 8  # 8 bits for bits_bits
             subtotal += bits_bits * bits.numel()
 
-        subtotal /= 2 ** 20 * 8  # bits -> MegaBytes
+        subtotal /= 2**20 * 8  # bits -> MegaBytes
         return total + subtotal
 
     def true_model_size(self):
@@ -235,8 +254,10 @@ class DiffQuantizer(BaseQuantizer):
 
     def _pre_forward_train(self):
         if not self._optimizer_setup:
-            raise RuntimeError("You must call `setup_optimizer()` on your optimizer "
-                               "before starting training.")
+            raise RuntimeError(
+                "You must call `setup_optimizer()` on your optimizer "
+                "before starting training."
+            )
         for qparam in self._qparams:
             if qparam.other is not None:
                 noisy = qparam.other.module._parameters[qparam.other.name]
@@ -249,7 +270,7 @@ class DiffQuantizer(BaseQuantizer):
                 scale = p_flat.max() - p_flat.min()
                 unit = 1 / (2**bits - 1)
                 if self.noise == "uniform":
-                    noise_source = (torch.rand_like(p_flat) - 0.5)
+                    noise_source = torch.rand_like(p_flat) - 0.5
                 elif self.noise == "gaussian":
                     noise_source = torch.randn_like(p_flat) / 2
                 noise = scale * unit * noise_source
@@ -273,7 +294,9 @@ class DiffQuantizer(BaseQuantizer):
         levels, scales = uniform_quantize(p, bits)
         return levels, scales, bits
 
-    def _unquantize_param(self, qparam: _QuantizedParam, quantized: tp.Any) -> torch.Tensor:
+    def _unquantize_param(
+        self, qparam: _QuantizedParam, quantized: tp.Any
+    ) -> torch.Tensor:
         levels, param_scale, bits = quantized
         return uniform_unquantize(levels, param_scale, bits).view_as(qparam.param.data)
 

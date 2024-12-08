@@ -36,21 +36,21 @@ def center_trim(tensor, reference):
     if delta < 0:
         raise ValueError("tensor must be larger than reference. " f"Delta is {delta}.")
     if delta:
-        tensor = tensor[..., delta // 2:-(delta - delta // 2)]
+        tensor = tensor[..., delta // 2 : -(delta - delta // 2)]
     return tensor
 
 
-def average_metric(metric, count=1.):
+def average_metric(metric, count=1.0):
     """
     Average `metric` which should be a float across all hosts. `count` should be
     the weight for this particular host (i.e. number of examples).
     """
-    metric = th.tensor([count, count * metric], dtype=th.float32, device='cuda')
+    metric = th.tensor([count, count * metric], dtype=th.float32, device="cuda")
     distributed.all_reduce(metric, op=distributed.ReduceOp.SUM)
     return metric[1].item() / metric[0].item()
 
 
-def free_port(host='', low=20000, high=40000):
+def free_port(host="", low=20000, high=40000):
     """
     Return a port number that is most likely free.
     This could suffer from a race condition although
@@ -68,25 +68,25 @@ def free_port(host='', low=20000, high=40000):
         return port
 
 
-def sizeof_fmt(num, suffix='B'):
+def sizeof_fmt(num, suffix="B"):
     """
     Given `num` bytes, return human readable size.
     Taken from https://stackoverflow.com/a/1094933
     """
-    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+    for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
-    return "%.1f%s%s" % (num, 'Yi', suffix)
+    return "%.1f%s%s" % (num, "Yi", suffix)
 
 
-def human_seconds(seconds, display='.2f'):
+def human_seconds(seconds, display=".2f"):
     """
     Given `seconds` seconds, return human readable duration.
     """
     value = seconds * 1e6
     ratios = [1e3, 1e3, 60, 60, 24]
-    names = ['us', 'ms', 's', 'min', 'hrs', 'days']
+    names = ["us", "ms", "s", "min", "hrs", "days"]
     last = names.pop(0)
     for name, ratio in zip(names, ratios):
         if value / ratio < 0.3:
@@ -145,8 +145,15 @@ def tensor_chunk(tensor_or_chunk):
         return TensorChunk(tensor_or_chunk)
 
 
-def apply_model(model, mix, shifts=None, split=False,
-                overlap=0.25, transition_power=1., progress=False):
+def apply_model(
+    model,
+    mix,
+    shifts=None,
+    split=False,
+    overlap=0.25,
+    transition_power=1.0,
+    progress=False,
+):
     """
     Apply model to a given mixture.
 
@@ -171,22 +178,23 @@ def apply_model(model, mix, shifts=None, split=False,
         offsets = range(0, length, stride)
         scale = stride / model.samplerate
         if progress:
-            offsets = tqdm.tqdm(offsets, unit_scale=scale, ncols=120, unit='seconds')
+            offsets = tqdm.tqdm(offsets, unit_scale=scale, ncols=120, unit="seconds")
         # We start from a triangle shaped weight, with maximal weight in the middle
         # of the segment. Then we normalize and take to the power `transition_power`.
         # Large values of transition power will lead to sharper transitions.
-        weight = th.cat([th.arange(1, segment // 2 + 1),
-                         th.arange(segment - segment // 2, 0, -1)]).to(device)
+        weight = th.cat(
+            [th.arange(1, segment // 2 + 1), th.arange(segment - segment // 2, 0, -1)]
+        ).to(device)
         assert len(weight) == segment
         # If the overlap < 50%, this will translate to linear transition when
         # transition_power is 1.
-        weight = (weight / weight.max())**transition_power
+        weight = (weight / weight.max()) ** transition_power
         for offset in offsets:
             chunk = TensorChunk(mix, offset, segment)
             chunk_out = apply_model(model, chunk, shifts=shifts)
             chunk_length = chunk_out.shape[-1]
-            out[..., offset:offset + segment] += weight[:chunk_length] * chunk_out
-            sum_weight[offset:offset + segment] += weight[:chunk_length]
+            out[..., offset : offset + segment] += weight[:chunk_length] * chunk_out
+            sum_weight[offset : offset + segment] += weight[:chunk_length]
             offset += segment
         assert sum_weight.min() > 0
         out /= sum_weight
@@ -200,7 +208,7 @@ def apply_model(model, mix, shifts=None, split=False,
             offset = random.randint(0, max_shift)
             shifted = TensorChunk(padded_mix, offset, length + max_shift - offset)
             shifted_out = apply_model(model, shifted)
-            out += shifted_out[..., max_shift - offset:]
+            out += shifted_out[..., max_shift - offset :]
         out /= shifts
         return out
     else:
@@ -228,13 +236,11 @@ def temp_filenames(count, delete=True):
 def get_quantizer(model, args, optimizer=None):
     quantizer = None
     if args.diffq:
-        quantizer = DiffQuantizer(
-            model, min_size=args.q_min_size, group_size=8)
+        quantizer = DiffQuantizer(model, min_size=args.q_min_size, group_size=8)
         if optimizer is not None:
             quantizer.setup_optimizer(optimizer)
     elif args.qat:
-        quantizer = UniformQuantizer(
-                model, bits=args.qat, min_size=args.q_min_size)
+        quantizer = UniformQuantizer(model, bits=args.qat, min_size=args.q_min_size)
     return quantizer
 
 
@@ -242,7 +248,7 @@ def load_model(path, strict=False):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         load_from = path
-        package = th.load(load_from, 'cpu')
+        package = th.load(load_from, "cpu")
 
     klass = package["klass"]
     args = package["args"]
@@ -268,12 +274,12 @@ def load_model(path, strict=False):
 
 def get_state(model, quantizer):
     if quantizer is None:
-        state = {k: p.data.to('cpu') for k, p in model.state_dict().items()}
+        state = {k: p.data.to("cpu") for k, p in model.state_dict().items()}
     else:
         state = quantizer.get_quantized_state()
         buf = io.BytesIO()
         th.save(state, buf)
-        state = {'compressed': zlib.compress(buf.getvalue())}
+        state = {"compressed": zlib.compress(buf.getvalue())}
     return state
 
 
@@ -305,11 +311,11 @@ def save_model(model, quantizer, training_args, path):
 
     save_to = path
     package = {
-        'klass': klass,
-        'args': args,
-        'kwargs': kwargs,
-        'state': state,
-        'training_args': training_args,
+        "klass": klass,
+        "args": args,
+        "kwargs": kwargs,
+        "state": state,
+        "training_args": training_args,
     }
     th.save(package, save_to)
 

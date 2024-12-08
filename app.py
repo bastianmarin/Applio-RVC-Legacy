@@ -46,8 +46,8 @@ def get_vc(sid):
     global n_spk, tgt_sr, net_g, vc, cpt, version
     if sid == "" or sid == []:
         global hubert_model
-        if hubert_model != None: 
-            del net_g, n_spk, vc, hubert_model, tgt_sr  
+        if hubert_model != None:
+            del net_g, n_spk, vc, hubert_model, tgt_sr
             hubert_model = net_g = n_spk = vc = hubert_model = tgt_sr = None
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
@@ -76,7 +76,7 @@ def get_vc(sid):
     print("loading %s" % person)
     cpt = torch.load(person, map_location="cpu")
     tgt_sr = cpt["config"][-1]
-    cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]  
+    cpt["config"][-3] = cpt["weight"]["emb_g.weight"].shape[0]
     if_f0 = cpt.get("f0", 1)
     version = cpt.get("version", "v1")
     if version == "v1":
@@ -129,7 +129,7 @@ def vc_single(
     resample_sr,
     rms_mix_rate,
     protect,
-):  
+):
     global tgt_sr, net_g, vc, hubert_model, version
     if input_audio_path is None:
         return "You need to upload an audio", None
@@ -157,7 +157,7 @@ def vc_single(
             )
             if file_index != ""
             else file_index2
-        )  
+        )
         audio_opt = vc.pipeline(
             hubert_model,
             net_g,
@@ -223,10 +223,17 @@ with app:
                 outputs=[spk_item],
             )
             gr.Markdown(
-                value=i18n("Recommended +12 key for male to female conversion, and -12 key for female to male conversion. If the sound range goes too far and the voice is distorted, you can also adjust it to the appropriate range by yourself.")
+                value=i18n(
+                    "Recommended +12 key for male to female conversion, and -12 key for female to male conversion. If the sound range goes too far and the voice is distorted, you can also adjust it to the appropriate range by yourself."
+                )
             )
             vc_input3 = gr.Audio(label="上传音频（长度小于90秒）")
-            vc_transform0 = gr.Number(label=i18n("Transpose (integer, number of semitones, raise by an octave: 12, lower by an octave: -12):"), value=0)
+            vc_transform0 = gr.Number(
+                label=i18n(
+                    "Transpose (integer, number of semitones, raise by an octave: 12, lower by an octave: -12):"
+                ),
+                value=0,
+            )
             f0method0 = gr.Radio(
                 label=i18n("Select the pitch extraction algorithm:"),
                 choices=["pm", "harvest", "crepe"],
@@ -236,7 +243,9 @@ with app:
             filter_radius0 = gr.Slider(
                 minimum=0,
                 maximum=7,
-                label=i18n("If >=3: apply median filtering to the harvested pitch results. The value represents the filter radius and can reduce breathiness."),
+                label=i18n(
+                    "If >=3: apply median filtering to the harvested pitch results. The value represents the filter radius and can reduce breathiness."
+                ),
                 value=3,
                 step=1,
                 interactive=True,
@@ -263,7 +272,9 @@ with app:
             resample_sr0 = gr.Slider(
                 minimum=0,
                 maximum=48000,
-                label=i18n("Resample the output audio in post-processing to the final sample rate. Set to 0 for no resampling:"),
+                label=i18n(
+                    "Resample the output audio in post-processing to the final sample rate. Set to 0 for no resampling:"
+                ),
                 value=0,
                 step=1,
                 interactive=True,
@@ -271,22 +282,34 @@ with app:
             rms_mix_rate0 = gr.Slider(
                 minimum=0,
                 maximum=1,
-                label=i18n("Use the volume envelope of the input to replace or mix with the volume envelope of the output. The closer the ratio is to 1, the more the output envelope is used:"),
+                label=i18n(
+                    "Use the volume envelope of the input to replace or mix with the volume envelope of the output. The closer the ratio is to 1, the more the output envelope is used:"
+                ),
                 value=1,
                 interactive=True,
             )
             protect0 = gr.Slider(
                 minimum=0,
                 maximum=0.5,
-                label=i18n("Protect voiceless consonants and breath sounds to prevent artifacts such as tearing in electronic music. Set to 0.5 to disable. Decrease the value to increase protection, but it may reduce indexing accuracy:"),
+                label=i18n(
+                    "Protect voiceless consonants and breath sounds to prevent artifacts such as tearing in electronic music. Set to 0.5 to disable. Decrease the value to increase protection, but it may reduce indexing accuracy:"
+                ),
                 value=0.33,
                 step=0.01,
                 interactive=True,
             )
-            f0_file = gr.File(label=i18n("F0 curve file (optional). One pitch per line. Replaces the default F0 and pitch modulation:"))
+            f0_file = gr.File(
+                label=i18n(
+                    "F0 curve file (optional). One pitch per line. Replaces the default F0 and pitch modulation:"
+                )
+            )
             but0 = gr.Button(i18n("Convert"), variant="primary")
             vc_output1 = gr.Textbox(label=i18n("Output information:"))
-            vc_output2 = gr.Audio(label=i18n("Export audio (click on the three dots in the lower right corner to download)"))
+            vc_output2 = gr.Audio(
+                label=i18n(
+                    "Export audio (click on the three dots in the lower right corner to download)"
+                )
+            )
             but0.click(
                 vc_single,
                 [

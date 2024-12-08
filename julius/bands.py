@@ -47,12 +47,20 @@ class SplitBands(torch.nn.Module):
     [10, 6, 4, 1024]
     """
 
-    def __init__(self, sample_rate: float, n_bands: Optional[int] = None,
-                 cutoffs: Optional[Sequence[float]] = None, pad: bool = True,
-                 zeros: float = 8, fft: Optional[bool] = None):
+    def __init__(
+        self,
+        sample_rate: float,
+        n_bands: Optional[int] = None,
+        cutoffs: Optional[Sequence[float]] = None,
+        pad: bool = True,
+        zeros: float = 8,
+        fft: Optional[bool] = None,
+    ):
         super().__init__()
         if (cutoffs is None) + (n_bands is None) != 1:
-            raise ValueError("You must provide either n_bands, or cutoffs, but not boths.")
+            raise ValueError(
+                "You must provide either n_bands, or cutoffs, but not boths."
+            )
 
         self.sample_rate = sample_rate
         self.n_bands = n_bands
@@ -72,7 +80,8 @@ class SplitBands(torch.nn.Module):
                 raise ValueError("A cutoff above sample_rate/2 does not make sense.")
         if len(cutoffs) > 0:
             self.lowpass = LowPassFilters(
-                [c / sample_rate for c in cutoffs], pad=pad, zeros=zeros, fft=fft)
+                [c / sample_rate for c in cutoffs], pad=pad, zeros=zeros, fft=fft
+            )
         else:
             # Here I cannot make both TorchScript and MyPy happy.
             # I miss the good old times, before all this madness was created.
@@ -106,9 +115,15 @@ class SplitBands(torch.nn.Module):
         return simple_repr(self, overrides={"cutoffs": self._cutoffs})
 
 
-def split_bands(signal: torch.Tensor, sample_rate: float, n_bands: Optional[int] = None,
-                cutoffs: Optional[Sequence[float]] = None, pad: bool = True,
-                zeros: float = 8, fft: Optional[bool] = None):
+def split_bands(
+    signal: torch.Tensor,
+    sample_rate: float,
+    n_bands: Optional[int] = None,
+    cutoffs: Optional[Sequence[float]] = None,
+    pad: bool = True,
+    zeros: float = 8,
+    fft: Optional[bool] = None,
+):
     """
     Functional version of `SplitBands`, refer to this class for more information.
 

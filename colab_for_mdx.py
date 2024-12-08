@@ -8,22 +8,21 @@ import time
 import logging
 import sys
 import shutil
+
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 first_cell_executed = False
 file_folder = "Colab-for-MDX_B"
+
+
 def first_cell_ran():
     global first_cell_executed
     if first_cell_executed:
-        #print("The 'first_cell_ran' function has already been executed.")
+        # print("The 'first_cell_ran' function has already been executed.")
         return
-
-    
 
     first_cell_executed = True
     os.makedirs("tmp_models", exist_ok=True)
-
-
 
     class hide_opt:  # hide outputs
         def __enter__(self):
@@ -43,14 +42,24 @@ def first_cell_ran():
             bytes /= factor
         svmem = psutil.virtual_memory()
 
-
     def use_uvr_without_saving():
         print("Notice: files won't be saved to personal drive.")
         print(f"Downloading {file_folder}...", end=" ")
         with hide_opt():
-            #os.chdir(mounting_path)
-            items_to_move = ["demucs", "diffq","julius","model","separated","tracks","mdx.py","MDX-Net_Colab.ipynb"]
-            subprocess.run(["git", "clone", "https://github.com/NaJeongMo/Colab-for-MDX_B.git"])
+            # os.chdir(mounting_path)
+            items_to_move = [
+                "demucs",
+                "diffq",
+                "julius",
+                "model",
+                "separated",
+                "tracks",
+                "mdx.py",
+                "MDX-Net_Colab.ipynb",
+            ]
+            subprocess.run(
+                ["git", "clone", "https://github.com/NaJeongMo/Colab-for-MDX_B.git"]
+            )
             for item_name in items_to_move:
                 item_path = os.path.join(file_folder, item_name)
                 if os.path.exists(item_path):
@@ -61,11 +70,14 @@ def first_cell_ran():
             try:
                 shutil.rmtree(file_folder)
             except PermissionError:
-                print(f"No se pudo eliminar la carpeta {file_folder}. Puede estar relacionada con Git.")
+                print(
+                    f"No se pudo eliminar la carpeta {file_folder}. Puede estar relacionada con Git."
+                )
 
-    
     use_uvr_without_saving()
     print("done!")
     if not os.path.exists("tracks"):
         os.mkdir("tracks")
+
+
 first_cell_ran()
